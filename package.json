@@ -1,0 +1,31 @@
+{
+  "name": "anchordesk",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0 <21"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:web",
+    "dev:api": "npm run build -w @anchordesk/shared && npm run dev -w @anchordesk/api",
+    "dev:web": "npm run build -w @anchordesk/shared && npm run dev -w @anchordesk/web",
+    "migrate": "npm run migrate -w @anchordesk/api",
+    "migrate:test": "npm run migrate:test -w @anchordesk/api",
+    "db:test:wait": "npm run db:test:wait -w @anchordesk/api",
+    "db:test:reset": "npm run db:test:reset -w @anchordesk/api",
+    "eval:retrieval": "npm run db:test:reset && npm run eval:retrieval -w @anchordesk/api",
+    "lint": "npm run lint -w @anchordesk/shared && npm run lint -w @anchordesk/api && npm run lint -w @anchordesk/web",
+    "typecheck": "npm run typecheck -w @anchordesk/shared && npm run build -w @anchordesk/shared && npm run typecheck -w @anchordesk/api && npm run typecheck -w @anchordesk/web",
+    "test": "npm run test -w @anchordesk/api",
+    "test:integration": "npm run db:test:reset && npm run test:integration -w @anchordesk/api",
+    "build": "npm run build -w @anchordesk/shared && npm run build -w @anchordesk/api && npm run build -w @anchordesk/web"
+  },
+  "devDependencies": {
+    "oxlint": "^1.71.0"
+  }
+}

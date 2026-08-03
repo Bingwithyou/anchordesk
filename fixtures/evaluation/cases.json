@@ -1,0 +1,98 @@
+[
+  {
+    "id": "refund-window-original",
+    "question": "退款申请期限是多少？",
+    "expectedOutcome": "answer",
+    "expectedRefusalStage": null,
+    "expectedDocumentTitles": ["退款政策"],
+    "requiredFacts": ["7 个自然日"]
+  },
+  {
+    "id": "refund-arrival-paraphrase",
+    "question": "退款审核通过后，钱会退到哪里，大约多久能到账？",
+    "expectedOutcome": "answer",
+    "expectedRefusalStage": null,
+    "expectedDocumentTitles": ["退款政策"],
+    "requiredFacts": ["原支付方式", "3 个工作日"]
+  },
+  {
+    "id": "shipping-area-original",
+    "question": "标准配送可以送到哪些地区？",
+    "expectedOutcome": "answer",
+    "expectedRefusalStage": null,
+    "expectedDocumentTitles": ["配送说明"],
+    "requiredFacts": ["中国大陆地区"]
+  },
+  {
+    "id": "shipping-speed-paraphrase",
+    "question": "普通配送一般要几个工作日才能送到？",
+    "expectedOutcome": "answer",
+    "expectedRefusalStage": null,
+    "expectedDocumentTitles": ["配送说明"],
+    "requiredFacts": ["2—4 个工作日"]
+  },
+  {
+    "id": "support-hours-original",
+    "question": "人工支持的服务时间是什么时候？",
+    "expectedOutcome": "answer",
+    "expectedRefusalStage": null,
+    "expectedDocumentTitles": ["客服指南"],
+    "requiredFacts": ["周一至周五", "09:00—18:00"]
+  },
+  {
+    "id": "support-response-paraphrase",
+    "question": "通过什么方式联系人工支持，通常多久回复？",
+    "expectedOutcome": "answer",
+    "expectedRefusalStage": null,
+    "expectedDocumentTitles": ["客服指南"],
+    "requiredFacts": ["联系支持", "4 个工作小时"]
+  },
+  {
+    "id": "refund-fee-boundary",
+    "question": "申请退款会收取手续费吗？",
+    "expectedOutcome": "refusal",
+    "expectedRefusalStage": "generation",
+    "expectedDocumentTitles": ["退款政策"],
+    "requiredFacts": []
+  },
+  {
+    "id": "shipping-carrier-boundary",
+    "question": "下单时可以指定快递公司吗？",
+    "expectedOutcome": "refusal",
+    "expectedRefusalStage": "generation",
+    "expectedDocumentTitles": ["配送说明"],
+    "requiredFacts": []
+  },
+  {
+    "id": "outside-weather",
+    "question": "明天上海天气如何？",
+    "expectedOutcome": "refusal",
+    "expectedRefusalStage": "retrieval",
+    "expectedDocumentTitles": [],
+    "requiredFacts": []
+  },
+  {
+    "id": "outside-poem",
+    "question": "请写一首关于春天的诗。",
+    "expectedOutcome": "refusal",
+    "expectedRefusalStage": "retrieval",
+    "expectedDocumentTitles": [],
+    "requiredFacts": []
+  },
+  {
+    "id": "outside-stock",
+    "question": "今天某只股票会涨吗？",
+    "expectedOutcome": "refusal",
+    "expectedRefusalStage": "retrieval",
+    "expectedDocumentTitles": [],
+    "requiredFacts": []
+  },
+  {
+    "id": "outside-mars",
+    "question": "火星距离地球有多远？",
+    "expectedOutcome": "refusal",
+    "expectedRefusalStage": "retrieval",
+    "expectedDocumentTitles": [],
+    "requiredFacts": []
+  }
+]

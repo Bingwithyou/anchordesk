@@ -1,0 +1,27 @@
+{
+  "name": "@anchordesk/shared",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/types.js",
+  "types": "./dist/types.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js",
+      "default": "./dist/types.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "lint": "oxlint -c ../../.oxlintrc.json src",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "build": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "oxlint": "^1.71.0",
+    "typescript": "~6.0.2"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "@anchordesk/api",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "migrate": "tsx src/db/migrate.ts",
+    "migrate:test": "tsx src/db/migrate.ts --test",
+    "db:test:wait": "tsx src/db/wait-for-db.ts",
+    "db:test:reset": "tsx src/db/reset-test-db.ts",
+    "eval:retrieval": "tsx src/evaluation/retrieval-eval.ts",
+    "lint": "oxlint -c ../../.oxlintrc.json src vitest.config.ts vitest.integration.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "test": "vitest run --config vitest.config.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@anchordesk/shared": "0.0.0",
+    "@fastify/cors": "^11.3.0",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.10.0",
+    "pg": "^8.22.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "@types/pg": "^8.20.0",
+    "tsx": "^4.23.1",
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.10"
+  }
+}
