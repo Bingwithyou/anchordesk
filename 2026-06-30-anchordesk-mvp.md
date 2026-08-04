@@ -1542,15 +1542,15 @@ docs/index.html 至少包含：
 
 步骤：
 
-- [ ] 配置 Tailwind CSS 4。
-- [ ] 实现中文导航与布局。
-- [ ] 实现问答页面。
-- [ ] 实现完整文档 CRUD 页面。
-- [ ] 实现运行日志页面。
-- [ ] 实现待处理页面。
-- [ ] 实现 loading、empty、error 和 disabled 状态。
-- [ ] 实现反馈提交后的状态。
-- [ ] 修正所有 type-only import。
+- [x] 配置 Tailwind CSS 4。
+- [x] 实现中文导航与布局。
+- [x] 实现问答页面。
+- [x] 实现完整文档 CRUD 页面。
+- [x] 实现运行日志页面。
+- [x] 实现待处理页面。
+- [x] 实现 loading、empty、error 和 disabled 状态。
+- [x] 实现反馈提交后的状态。
+- [x] 修正所有 type-only import。
 
 完成定义：
 
