@@ -62,3 +62,88 @@ export type QuestionResponse =
       refusalReason: RefusalReason;
       citations: [];
     };
+
+export type FeedbackRating = 'helpful' | 'not_helpful';
+
+export type ReviewItemType = 'refusal' | 'not_helpful';
+
+export type ReviewStatus = 'open' | 'resolved';
+
+export type LogSummary = {
+  id: string;
+  questionPreview: string;
+  answerPreview: string;
+  refused: boolean;
+  refusalReason: RefusalReason | null;
+  createdAt: string;
+  feedbackRating: FeedbackRating | null;
+};
+
+export type LogHit = {
+  rank: number;
+  sourceDocumentId: string;
+  sourceChunkId: string;
+  documentTitle: string;
+  chunkContent: string;
+  distance: number;
+  passedThreshold: boolean;
+  cited: boolean;
+};
+
+export type LogDetail = {
+  id: string;
+  question: string;
+  answer: string;
+  refused: boolean;
+  refusalReason: RefusalReason | null;
+  answerModel: string;
+  embeddingModel: string;
+  ragTopK: number;
+  ragMaxDistance: number;
+  promptVersion: string;
+  retrievalMs: number;
+  generationMs: number | null;
+  createdAt: string;
+  feedback: {
+    rating: FeedbackRating;
+    createdAt: string;
+  } | null;
+  hits: LogHit[];
+};
+
+export type FeedbackRequest = {
+  questionLogId: string;
+  rating: FeedbackRating;
+};
+
+export type FeedbackResponse = {
+  id: string;
+  questionLogId: string;
+  rating: FeedbackRating;
+  createdAt: string;
+};
+
+export type ReviewQueueItem = {
+  id: string;
+  questionLogId: string;
+  itemType: ReviewItemType;
+  status: ReviewStatus;
+  question: string;
+  answer: string;
+  refusalReason: RefusalReason | null;
+  feedbackRating: FeedbackRating | null;
+  note: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+};
+
+export type ResolveReviewRequest = {
+  note: string;
+};
+
+export type ResolvedReviewItem = {
+  id: string;
+  status: 'resolved';
+  note: string;
+  resolvedAt: string;
+};

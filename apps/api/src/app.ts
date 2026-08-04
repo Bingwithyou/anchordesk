@@ -8,8 +8,11 @@ import { createDatabasePool } from './db/pool.js';
 import { ProviderError } from './providers/errors.js';
 import type { Providers } from './providers/types.js';
 import { documentRoutes } from './routes/documents.js';
+import { feedbackRoutes } from './routes/feedback.js';
 import { healthRoutes } from './routes/health.js';
+import { logRoutes } from './routes/logs.js';
 import { questionRoutes } from './routes/questions.js';
+import { reviewQueueRoutes } from './routes/review-queue.js';
 import {
   createDocumentService,
   DocumentServiceError,
@@ -18,6 +21,10 @@ import {
   createQuestionService,
   QuestionServiceError,
 } from './services/question-service.js';
+import {
+  createReviewService,
+  ReviewServiceError,
+} from './services/review-service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -60,6 +67,7 @@ export function buildApp(
     answerModel: config.deepseekModel,
     promptVersion: config.promptVersion,
   });
+  const reviewService = createReviewService({ database });
 
   app.decorate('appConfig', config);
   app.decorate('providers', providers);
@@ -74,6 +82,12 @@ export function buildApp(
       });
     }
     if (error instanceof QuestionServiceError) {
+      return reply.code(error.statusCode).send({
+        code: error.code,
+        message: error.message,
+      });
+    }
+    if (error instanceof ReviewServiceError) {
       return reply.code(error.statusCode).send({
         code: error.code,
         message: error.message,
@@ -111,6 +125,9 @@ export function buildApp(
   app.register(healthRoutes);
   app.register(documentRoutes, { documentService });
   app.register(questionRoutes, { questionService });
+  app.register(logRoutes, { reviewService });
+  app.register(feedbackRoutes, { reviewService });
+  app.register(reviewQueueRoutes, { reviewService });
 
   return app;
 }
