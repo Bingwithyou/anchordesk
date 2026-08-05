@@ -6,14 +6,12 @@ import type {
   DocumentSummary,
 } from '@anchordesk/shared';
 
-import { ApiClientError, createApiClient } from '../api/client.js';
+import { ApiClientError, type ApiClient } from '../api/client.js';
 import { EmptyState } from '../components/EmptyState.js';
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import { LoadingState } from '../components/LoadingState.js';
 import { StatusBadge } from '../components/StatusBadge.js';
 import { formatDateTime, toUtf8ByteLength } from '../format.js';
-
-const api = createApiClient();
 
 const MAX_DOCUMENT_BYTES = 100 * 1024;
 
@@ -25,7 +23,11 @@ interface FormState {
 
 const emptyForm: FormState = { title: '', content: '', sourceType: 'text' };
 
-export function DocumentsPage() {
+export interface DocumentsPageProps {
+  api: ApiClient;
+}
+
+export function DocumentsPage({ api }: DocumentsPageProps) {
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
@@ -90,7 +92,7 @@ export function DocumentsPage() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [api]);
 
   useEffect(() => {
     void loadDocuments();

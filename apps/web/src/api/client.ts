@@ -17,6 +17,15 @@ import type {
 
 export const DEFAULT_API_BASE_URL = 'http://127.0.0.1:4000';
 
+export function resolveApiBaseUrl(
+  environment: Readonly<Record<string, string | undefined>>,
+): string {
+  const configured = environment.VITE_API_BASE_URL?.trim();
+  return configured === undefined || configured === ''
+    ? DEFAULT_API_BASE_URL
+    : configured;
+}
+
 export interface ApiClientErrorOptions {
   message: string;
   code?: string;

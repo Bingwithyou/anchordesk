@@ -1,11 +1,16 @@
 import { useState } from 'react';
 
+import type { ApiClient } from './api/client.js';
 import { DocumentsPage } from './pages/DocumentsPage.js';
 import { LogsPage } from './pages/LogsPage.js';
 import { QuestionPage } from './pages/QuestionPage.js';
 import { ReviewQueuePage } from './pages/ReviewQueuePage.js';
 
 type Page = 'question' | 'documents' | 'logs' | 'review';
+
+export interface AppProps {
+  api: ApiClient;
+}
 
 const navigation: { page: Page; label: string }[] = [
   { page: 'question', label: '问答' },
@@ -14,7 +19,7 @@ const navigation: { page: Page; label: string }[] = [
   { page: 'review', label: '待处理' },
 ];
 
-export default function App() {
+export default function App({ api }: AppProps) {
   const [currentPage, setCurrentPage] = useState<Page>('question');
 
   return (
@@ -50,10 +55,10 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6">
-        {currentPage === 'question' && <QuestionPage />}
-        {currentPage === 'documents' && <DocumentsPage />}
-        {currentPage === 'logs' && <LogsPage />}
-        {currentPage === 'review' && <ReviewQueuePage />}
+        {currentPage === 'question' && <QuestionPage api={api} />}
+        {currentPage === 'documents' && <DocumentsPage api={api} />}
+        {currentPage === 'logs' && <LogsPage api={api} />}
+        {currentPage === 'review' && <ReviewQueuePage api={api} />}
       </main>
     </div>
   );

@@ -2,16 +2,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ReviewQueueItem } from '@anchordesk/shared';
 
-import { ApiClientError, createApiClient } from '../api/client.js';
+import { ApiClientError, type ApiClient } from '../api/client.js';
 import { EmptyState } from '../components/EmptyState.js';
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import { LoadingState } from '../components/LoadingState.js';
 import { StatusBadge } from '../components/StatusBadge.js';
 import { feedbackLabels, formatDateTime, refusalReasonLabels } from '../format.js';
 
-const api = createApiClient();
+export interface ReviewQueuePageProps {
+  api: ApiClient;
+}
 
-export function ReviewQueuePage() {
+export function ReviewQueuePage({ api }: ReviewQueuePageProps) {
   const [items, setItems] = useState<ReviewQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
@@ -68,7 +70,7 @@ export function ReviewQueuePage() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [api]);
 
   useEffect(() => {
     void loadQueue();

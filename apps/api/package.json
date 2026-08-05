@@ -12,6 +12,8 @@
     "db:test:wait": "tsx src/db/wait-for-db.ts",
     "db:test:reset": "tsx src/db/reset-test-db.ts",
     "eval:retrieval": "tsx src/evaluation/retrieval-eval.ts",
+    "eval:generation": "tsx src/evaluation/generation-eval.ts",
+    "test:e2e:server": "tsx src/test/e2e-server.ts",
     "lint": "oxlint -c ../../.oxlintrc.json src vitest.config.ts vitest.integration.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "test": "vitest run --config vitest.config.ts",

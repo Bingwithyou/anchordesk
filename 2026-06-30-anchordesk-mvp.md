@@ -1569,17 +1569,17 @@ docs/index.html 至少包含：
 
 步骤：
 
-- [ ] 完成单元测试。
-- [ ] 完成 Fastify inject 测试。
-- [ ] 完成 PostgreSQL 与 pgvector 测试。
-- [ ] 完成 Playwright 流程。
-- [ ] 配置 Playwright webServer 启动 Fake API 与 Web。
-- [ ] 在 README 中加入 npx playwright install chromium。
-- [ ] 确认自动测试不访问真实 DeepSeek。
-- [ ] 运行真实 Ollama 检索评测。
-- [ ] 运行显式的真实 DeepSeek 生成评测。
-- [ ] 校准并记录 RAG_MAX_DISTANCE。
-- [ ] 让 npm run verify 通过。
+- [x] 完成单元测试。
+- [x] 完成 Fastify inject 测试。
+- [x] 完成 PostgreSQL 与 pgvector 测试。
+- [x] 完成 Playwright 流程。
+- [x] 配置 Playwright webServer 启动 Fake API 与 Web。
+- [x] 在 README 中加入 npx playwright install chromium。
+- [x] 确认自动测试不访问真实 DeepSeek。
+- [x] 运行真实 Ollama 检索评测。
+- [x] 运行显式的真实 DeepSeek 生成评测。
+- [x] 校准并记录 RAG_MAX_DISTANCE。
+- [x] 让 npm run verify 通过。
 
 完成定义：
 

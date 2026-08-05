@@ -2,13 +2,15 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 import type { FeedbackRating, QuestionResponse } from '@anchordesk/shared';
 
-import { ApiClientError, createApiClient } from '../api/client.js';
+import { ApiClientError, type ApiClient } from '../api/client.js';
 import { CitationText } from '../components/CitationText.js';
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import { StatusBadge } from '../components/StatusBadge.js';
 import { refusalReasonLabels } from '../format.js';
 
-const api = createApiClient();
+export interface QuestionPageProps {
+  api: ApiClient;
+}
 
 type FeedbackStatus = {
   questionLogId: string;
@@ -16,7 +18,7 @@ type FeedbackStatus = {
   message: string;
 } | null;
 
-export function QuestionPage() {
+export function QuestionPage({ api }: QuestionPageProps) {
   const [question, setQuestion] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<QuestionResponse | null>(null);

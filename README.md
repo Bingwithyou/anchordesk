@@ -37,3 +37,13 @@ See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rule
 - 结果：6/6 个答案用例、2/2 个生成级拒答用例、4/4 个检索级拒答用例通过，共 12/12
 
 运行 `npm run eval:retrieval` 会重置测试数据库，使用真实 Ollama 生成向量，并在事务回滚后把不含文档全文和密钥的本地 JSON 报告写入 `reports/retrieval/`。该目录已被 Git 忽略。
+
+## 测试运行
+
+```powershell
+npx playwright install chromium
+npm run test:e2e
+npm run verify
+```
+
+`npm run test:e2e` 会重置测试数据库，启动独立端口（4100）上的 Fake API 与 Vite Web，用 Chromium 跑完整浏览器流程；`npm run verify` 串行执行 lint、typecheck、单元测试、集成测试、E2E 与构建。

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { LogDetail, LogSummary } from '@anchordesk/shared';
 
-import { ApiClientError, createApiClient } from '../api/client.js';
+import { ApiClientError, type ApiClient } from '../api/client.js';
 import { EmptyState } from '../components/EmptyState.js';
 import { ErrorAlert } from '../components/ErrorAlert.js';
 import { LoadingState } from '../components/LoadingState.js';
@@ -13,9 +13,11 @@ import {
   refusalReasonLabels,
 } from '../format.js';
 
-const api = createApiClient();
+export interface LogsPageProps {
+  api: ApiClient;
+}
 
-export function LogsPage() {
+export function LogsPage({ api }: LogsPageProps) {
   const [logs, setLogs] = useState<LogSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
@@ -59,7 +61,7 @@ export function LogsPage() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [api]);
 
   useEffect(() => {
     void loadLogs();

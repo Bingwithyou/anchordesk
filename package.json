@@ -19,13 +19,17 @@
     "db:test:wait": "npm run db:test:wait -w @anchordesk/api",
     "db:test:reset": "npm run db:test:reset -w @anchordesk/api",
     "eval:retrieval": "npm run db:test:reset && npm run eval:retrieval -w @anchordesk/api",
+    "eval:generation": "npm run db:test:reset && npm run eval:generation -w @anchordesk/api",
+    "test:e2e": "npm run db:test:reset && playwright test",
+    "verify": "npm run lint && npm run typecheck && npm run test && npm run test:integration && npm run test:e2e && npm run build",
     "lint": "npm run lint -w @anchordesk/shared && npm run lint -w @anchordesk/api && npm run lint -w @anchordesk/web",
-    "typecheck": "npm run typecheck -w @anchordesk/shared && npm run build -w @anchordesk/shared && npm run typecheck -w @anchordesk/api && npm run typecheck -w @anchordesk/web",
+    "typecheck": "npm run typecheck -w @anchordesk/shared && npm run build -w @anchordesk/shared && npm run typecheck -w @anchordesk/api && npm run typecheck -w @anchordesk/web && tsc -p tsconfig.e2e.json",
     "test": "npm run test -w @anchordesk/api",
     "test:integration": "npm run db:test:reset && npm run test:integration -w @anchordesk/api",
     "build": "npm run build -w @anchordesk/shared && npm run build -w @anchordesk/api && npm run build -w @anchordesk/web"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "oxlint": "^1.71.0"
   }
 }

@@ -32,6 +32,14 @@ export interface RetrievalEvaluationConfig {
   ragMaxDistance: number;
 }
 
+export interface GenerationEvaluationConfig extends RetrievalEvaluationConfig {
+  deepseekApiKey: string;
+  deepseekBaseUrl: string;
+  deepseekModel: string;
+  deepseekTimeoutMs: number;
+  promptVersion: string;
+}
+
 export type AppEnvironment = Readonly<Record<string, string | undefined>>;
 
 const repositoryRoot = resolve(
@@ -141,6 +149,21 @@ const retrievalEvaluationEnvironmentSchema = environmentSchema.pick({
   RAG_MAX_DISTANCE: true,
 });
 
+const generationEvaluationEnvironmentSchema = environmentSchema.pick({
+  DATABASE_URL: true,
+  TEST_DATABASE_URL: true,
+  OLLAMA_BASE_URL: true,
+  OLLAMA_EMBED_MODEL: true,
+  OLLAMA_TIMEOUT_MS: true,
+  RAG_TOP_K: true,
+  RAG_MAX_DISTANCE: true,
+  DEEPSEEK_API_KEY: true,
+  DEEPSEEK_BASE_URL: true,
+  DEEPSEEK_MODEL: true,
+  DEEPSEEK_TIMEOUT_MS: true,
+  PROMPT_VERSION: true,
+});
+
 export class ConfigurationError extends Error {
   constructor(details: string[]) {
     super(`配置无效：${details.join('；')}`);
@@ -228,6 +251,39 @@ export function loadRetrievalEvaluationConfig(
   environmentFile = rootEnvironmentFile,
 ): RetrievalEvaluationConfig {
   return parseRetrievalEvaluationConfig(
+    mergeEnvironment(environment, environmentFile),
+  );
+}
+
+export function parseGenerationEvaluationConfig(
+  environment: AppEnvironment,
+): GenerationEvaluationConfig {
+  const parsed = generationEvaluationEnvironmentSchema.safeParse(environment);
+  if (!parsed.success) {
+    throw configurationError(parsed.error);
+  }
+
+  return {
+    databaseUrl: parsed.data.DATABASE_URL,
+    testDatabaseUrl: parsed.data.TEST_DATABASE_URL,
+    ollamaBaseUrl: parsed.data.OLLAMA_BASE_URL,
+    ollamaEmbedModel: parsed.data.OLLAMA_EMBED_MODEL,
+    ollamaTimeoutMs: parsed.data.OLLAMA_TIMEOUT_MS,
+    ragTopK: parsed.data.RAG_TOP_K,
+    ragMaxDistance: parsed.data.RAG_MAX_DISTANCE,
+    deepseekApiKey: parsed.data.DEEPSEEK_API_KEY,
+    deepseekBaseUrl: parsed.data.DEEPSEEK_BASE_URL,
+    deepseekModel: parsed.data.DEEPSEEK_MODEL,
+    deepseekTimeoutMs: parsed.data.DEEPSEEK_TIMEOUT_MS,
+    promptVersion: parsed.data.PROMPT_VERSION,
+  };
+}
+
+export function loadGenerationEvaluationConfig(
+  environment: AppEnvironment = process.env,
+  environmentFile = rootEnvironmentFile,
+): GenerationEvaluationConfig {
+  return parseGenerationEvaluationConfig(
     mergeEnvironment(environment, environmentFile),
   );
 }

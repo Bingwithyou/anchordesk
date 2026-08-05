@@ -121,6 +121,9 @@ export function buildApp(
     origin(origin, callback) {
       callback(null, origin === undefined || origin === config.webOrigin);
     },
+    // @fastify/cors 默认只放行 GET/HEAD/POST，必须显式包含 PUT/DELETE，
+    // 否则浏览器 preflight 会拦截文档更新、删除与待处理解决。
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
   app.register(healthRoutes);
   app.register(documentRoutes, { documentService });

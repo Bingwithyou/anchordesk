@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   loadConfig,
   parseAppConfig,
+  parseGenerationEvaluationConfig,
   parseRetrievalEvaluationConfig,
 } from './config.js';
 
@@ -146,5 +147,59 @@ describe('检索评测配置', () => {
       ragTopK: 5,
       ragMaxDistance: 0.55,
     });
+  });
+});
+
+describe('生成评测配置', () => {
+  it('解析真实生成评测所需的数据库、Ollama 与 DeepSeek 配置', () => {
+    expect(parseGenerationEvaluationConfig(validEnvironment)).toEqual({
+      databaseUrl: validEnvironment.DATABASE_URL,
+      testDatabaseUrl: validEnvironment.TEST_DATABASE_URL,
+      ollamaBaseUrl: validEnvironment.OLLAMA_BASE_URL,
+      ollamaEmbedModel: validEnvironment.OLLAMA_EMBED_MODEL,
+      ollamaTimeoutMs: 30_000,
+      ragTopK: 5,
+      ragMaxDistance: 0.55,
+      deepseekApiKey: 'test-only-key',
+      deepseekBaseUrl: 'https://api.deepseek.com',
+      deepseekModel: 'deepseek-v4-pro',
+      deepseekTimeoutMs: 60_000,
+      promptVersion: 'v1',
+    });
+  });
+
+  it('缺少或空白 DeepSeek Key 时立即失败且错误不回显密钥内容', () => {
+    expect(() =>
+      parseGenerationEvaluationConfig({
+        ...validEnvironment,
+        DEEPSEEK_API_KEY: 'should-never-appear',
+        DEEPSEEK_BASE_URL: '不是 URL',
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        message: expect.not.stringContaining('should-never-appear'),
+      }),
+    );
+
+    expect(() =>
+      parseGenerationEvaluationConfig({
+        ...validEnvironment,
+        DEEPSEEK_API_KEY: '   ',
+      }),
+    ).toThrow('DEEPSEEK_API_KEY');
+  });
+
+  it('只提供检索字段时因缺少 DeepSeek Key 直接失败', () => {
+    expect(() =>
+      parseGenerationEvaluationConfig({
+        DATABASE_URL: validEnvironment.DATABASE_URL,
+        TEST_DATABASE_URL: validEnvironment.TEST_DATABASE_URL,
+        OLLAMA_BASE_URL: validEnvironment.OLLAMA_BASE_URL,
+        OLLAMA_EMBED_MODEL: validEnvironment.OLLAMA_EMBED_MODEL,
+        OLLAMA_TIMEOUT_MS: validEnvironment.OLLAMA_TIMEOUT_MS,
+        RAG_TOP_K: validEnvironment.RAG_TOP_K,
+        RAG_MAX_DISTANCE: validEnvironment.RAG_MAX_DISTANCE,
+      }),
+    ).toThrow('DEEPSEEK_API_KEY');
   });
 });

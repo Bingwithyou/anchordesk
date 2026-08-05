@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "tsBuildInfoFile": "./node_modules/.cache/anchordesk/e2e.tsbuildinfo"
+  },
+  "include": ["playwright.config.ts", "e2e"]
+}

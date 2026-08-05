@@ -3,24 +3,30 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import {
-  loadRetrievalEvaluationConfig,
-  type RetrievalEvaluationConfig,
+  loadGenerationEvaluationConfig,
+  type GenerationEvaluationConfig,
 } from '../config.js';
 import { assertSafeTestDatabaseUrls } from '../db/database-config.js';
 import { createDatabasePool } from '../db/pool.js';
+import { DeepSeekAnswerProvider } from '../providers/deepseek.js';
+import { ProviderError } from '../providers/errors.js';
 import { OllamaEmbeddingProvider } from '../providers/ollama.js';
+import type { AnswerContractResult } from '../rag/answer-contract.js';
+import { validateGeneratedAnswer } from '../rag/answer-contract.js';
 import { retrieveChunks } from '../rag/retrieve.js';
 import { defaultFixtureRoot, loadEvaluationFixtures } from './fixtures.js';
-import { embedKnowledge, insertKnowledge } from './knowledge.js';
 import {
-  evaluateRetrievalCase,
-  type RetrievalCaseReport,
-} from './retrieval-evaluator.js';
+  evaluateGenerationCase,
+  type GenerationCaseReport,
+} from './generation-evaluator.js';
+import { embedKnowledge, insertKnowledge } from './knowledge.js';
 
-export interface RetrievalEvaluationReport {
+export interface GenerationEvaluationReport {
   schemaVersion: 1;
   generatedAt: string;
   embeddingModel: string;
+  answerModel: string;
+  promptVersion: string;
   topK: number;
   maxDistance: number;
   fixtures: {
@@ -38,19 +44,27 @@ export interface RetrievalEvaluationReport {
     retrievalRefusalPassed: number;
     retrievalRefusalTotal: number;
   };
-  cases: RetrievalCaseReport[];
+  cases: GenerationCaseReport[];
 }
 
-export interface RetrievalEvaluationResult {
-  report: RetrievalEvaluationReport;
+export interface GenerationEvaluationResult {
+  report: GenerationEvaluationReport;
   reportPath: string;
 }
 
-const reportDirectory = resolve(defaultFixtureRoot, '../reports/retrieval');
+const reportDirectory = resolve(defaultFixtureRoot, '../reports/generation');
+
+/** 把上游错误归类为脱敏分类，绝不包含 Key、请求头或响应正文。 */
+function classifyError(error: unknown): string {
+  if (error instanceof ProviderError) {
+    return `${error.provider}:${error.kind}`;
+  }
+  return 'internal';
+}
 
 function countBy(
-  reports: RetrievalCaseReport[],
-  predicate: (report: RetrievalCaseReport) => boolean,
+  reports: GenerationCaseReport[],
+  predicate: (report: GenerationCaseReport) => boolean,
 ): { passed: number; total: number } {
   const matching = reports.filter(predicate);
   return {
@@ -60,10 +74,10 @@ function countBy(
 }
 
 function createReport(
-  config: RetrievalEvaluationConfig,
+  config: GenerationEvaluationConfig,
   documentCount: number,
-  reports: RetrievalCaseReport[],
-): RetrievalEvaluationReport {
+  reports: GenerationCaseReport[],
+): GenerationEvaluationReport {
   const answers = countBy(
     reports,
     (report) => report.expectedOutcome === 'answer',
@@ -81,6 +95,8 @@ function createReport(
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
     embeddingModel: config.ollamaEmbedModel,
+    answerModel: config.deepseekModel,
+    promptVersion: config.promptVersion,
     topK: config.ragTopK,
     maxDistance: config.ragMaxDistance,
     fixtures: {
@@ -103,7 +119,7 @@ function createReport(
 }
 
 async function writeReport(
-  report: RetrievalEvaluationReport,
+  report: GenerationEvaluationReport,
 ): Promise<string> {
   await mkdir(reportDirectory, { recursive: true });
   const timestamp = report.generatedAt.replace(/[:.]/gu, '-');
@@ -112,9 +128,9 @@ async function writeReport(
   return reportPath;
 }
 
-export async function runRetrievalEvaluation(
-  config = loadRetrievalEvaluationConfig(),
-): Promise<RetrievalEvaluationResult> {
+export async function runGenerationEvaluation(
+  config = loadGenerationEvaluationConfig(),
+): Promise<GenerationEvaluationResult> {
   assertSafeTestDatabaseUrls({
     databaseUrl: config.databaseUrl,
     testDatabaseUrl: config.testDatabaseUrl,
@@ -125,6 +141,13 @@ export async function runRetrievalEvaluation(
     baseUrl: config.ollamaBaseUrl,
     model: config.ollamaEmbedModel,
     timeoutMs: config.ollamaTimeoutMs,
+  });
+  const answerProvider = new DeepSeekAnswerProvider({
+    apiKey: config.deepseekApiKey,
+    baseUrl: config.deepseekBaseUrl,
+    model: config.deepseekModel,
+    promptVersion: config.promptVersion,
+    timeoutMs: config.deepseekTimeoutMs,
   });
   const embeddedChunks = await embedKnowledge(
     fixtures.documents,
@@ -139,7 +162,7 @@ export async function runRetrievalEvaluation(
   }
 
   const pool = createDatabasePool(config.testDatabaseUrl);
-  const caseReports: RetrievalCaseReport[] = [];
+  const caseReports: GenerationCaseReport[] = [];
   try {
     const client = await pool.connect();
     try {
@@ -151,19 +174,45 @@ export async function runRetrievalEvaluation(
           if (!embedding) {
             throw new Error(`评测问题缺少向量：${evaluationCase.id}`);
           }
-          const retrieval = await retrieveChunks({
-            database: client,
-            embedding,
-            maxDistance: config.ragMaxDistance,
-            topK: config.ragTopK,
-          });
-          caseReports.push(
-            evaluateRetrievalCase(
+          console.log(
+            `正在评测用例：${index + 1}/${fixtures.cases.length}（${evaluationCase.id}）`,
+          );
+          const startedAt = performance.now();
+          let report: GenerationCaseReport;
+          try {
+            const retrieval = await retrieveChunks({
+              database: client,
+              embedding,
+              maxDistance: config.ragMaxDistance,
+              topK: config.ragTopK,
+            });
+            let contract: AnswerContractResult | null = null;
+            if (retrieval.evidence.length > 0) {
+              const rawOutput = await answerProvider.generate(
+                evaluationCase.question,
+                retrieval.evidence,
+              );
+              contract = validateGeneratedAnswer(rawOutput, retrieval.evidence);
+            }
+            report = evaluateGenerationCase(
               evaluationCase,
               retrieval,
-              config.ragMaxDistance,
-            ),
-          );
+              contract,
+              Math.round(performance.now() - startedAt),
+            );
+          } catch (error) {
+            report = {
+              ...evaluateGenerationCase(
+                evaluationCase,
+                { candidates: [], evidence: [] },
+                null,
+                Math.round(performance.now() - startedAt),
+              ),
+              error: classifyError(error),
+              passed: false,
+            };
+          }
+          caseReports.push(report);
         }
       } finally {
         await client.query('ROLLBACK');
@@ -180,12 +229,22 @@ export async function runRetrievalEvaluation(
 }
 
 async function main(): Promise<void> {
-  const { report, reportPath } = await runRetrievalEvaluation();
+  let result: GenerationEvaluationResult;
+  try {
+    result = await runGenerationEvaluation();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '未知错误';
+    console.error(`生成评测失败：${message}`);
+    process.exitCode = 1;
+    return;
+  }
+  const { report, reportPath } = result;
   console.log(
-    `检索评测完成：${report.summary.passed}/${report.summary.total}，报告：${reportPath}`,
+    `生成评测完成：${report.summary.passed}/${report.summary.total}，报告：${reportPath}`,
   );
   if (report.summary.passed !== report.summary.total) {
-    throw new Error('当前检索门槛未通过全部固定用例，请查看报告');
+    console.error('存在未通过的用例，请查看报告中的 missingRequiredFacts 与 error 字段');
+    process.exitCode = 1;
   }
 }
 
@@ -196,7 +255,7 @@ if (
 ) {
   main().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : '未知错误';
-    console.error(`检索评测失败：${message}`);
+    console.error(`生成评测失败：${message}`);
     process.exitCode = 1;
   });
 }
