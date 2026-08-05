@@ -1598,17 +1598,17 @@ docs/index.html 至少包含：
 
 步骤：
 
-- [ ] 写中文 README。
-- [ ] 列出 Node、Docker、Ollama 和 DeepSeek Key 前置条件。
-- [ ] 同时给出 PowerShell 与 Bash 的环境文件复制命令。
-- [ ] 明确要求填写 DEEPSEEK_API_KEY。
-- [ ] 记录本地端口和仅本机边界。
-- [ ] 记录固定评测集和最终门槛。
-- [ ] 运行真实端到端手工验收。
-- [ ] 截取四个页面。
-- [ ] 创建不含 API 调用的 Pages 介绍页。
-- [ ] 运行最终 verify 和 eval:retrieval。
-- [ ] 运行最终 eval:generation。
+- [x] 写中文 README。
+- [x] 列出 Node、Docker、Ollama 和 DeepSeek Key 前置条件。
+- [x] 同时给出 PowerShell 与 Bash 的环境文件复制命令。
+- [x] 明确要求填写 DEEPSEEK_API_KEY。
+- [x] 记录本地端口和仅本机边界。
+- [x] 记录固定评测集和最终门槛。
+- [x] 运行真实端到端手工验收。
+- [x] 截取四个页面。
+- [x] 创建不含 API 调用的 Pages 介绍页。
+- [x] 运行最终 verify 和 eval:retrieval。
+- [x] 运行最终 eval:generation。
 
 完成定义：
 

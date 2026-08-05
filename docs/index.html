@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta
+    name="description"
+    content="AnchorDesk：本地中文 RAG 知识库问答系统项目介绍。真实 RAG 功能需要按 README 在本机运行。"
+  />
+  <title>AnchorDesk 知识库问答 — 项目介绍</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <h1>AnchorDesk 知识库问答</h1>
+      <p class="subtitle">本地中文 RAG 系统：文档入库、向量检索、带引用回答、反馈与审核闭环</p>
+      <p class="notice" role="note">
+        <strong>这是项目介绍页。</strong>真实 RAG 功能需要按
+        <a href="https://github.com/OWNER/REPOSITORY#readme">README</a>
+        在本机运行，本页面不包含任何在线服务。
+      </p>
+    </header>
+
+    <main>
+      <section>
+        <h2>项目简介</h2>
+        <p>
+          AnchorDesk 演示一条完整的本地化 RAG 链路：中文文档分块与向量化 →
+          pgvector 相似度检索与距离门槛过滤 → DeepSeek 结构化生成与引用合同校验 →
+          原子化日志与证据快照。系统不会伪造回答：检索不到依据或模型没有足够依据时返回确定性拒答，
+          并自动进入“待处理”审核队列。
+        </p>
+        <p>
+          系统仅供开发者本人本机运行，所有服务只监听回环地址，不支持局域网或公网访问，
+          只允许录入合成数据或公开数据。
+        </p>
+      </section>
+
+      <section>
+        <h2>MVP 功能</h2>
+        <ul>
+          <li>中文文档管理：创建、列表、详情、连续编辑（乐观并发校验）与删除，自动分块与向量索引。</li>
+          <li>单轮问答：中文问题 → 检索 → 生成；答案含行内引用，可点击定位证据卡片。</li>
+          <li>确定性拒答：知识库为空、距离超门槛、模型主动拒答、模型输出不合法，均返回固定拒答文案。</li>
+          <li>用户反馈：“有帮助 / 没有帮助”提交后锁定；“没有帮助”自动进入待处理队列。</li>
+          <li>待处理审核：拒答与“没帮助”两类项目、备注（1–1000 字）、标记已解决、已解决只读。</li>
+          <li>运行日志：最近 100 条摘要（不泄露完整正文）、详情与全部候选 hits 快照，审计快照不可变。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>技术栈</h2>
+        <ul class="stack">
+          <li>Web：React 19、Vite 8、Tailwind CSS 4</li>
+          <li>API：Node.js、Fastify 5、TypeScript</li>
+          <li>数据库：PostgreSQL 16 + pgvector（1024 维余弦距离，HNSW 索引）</li>
+          <li>向量模型：Ollama bge-m3（本机）</li>
+          <li>生成模型：DeepSeek（结构化 JSON 输出）</li>
+          <li>测试：Vitest、Playwright、oxlint</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>系统架构</h2>
+        <pre class="diagram">
+React Web
+   │
+   ▼
+Fastify API ─── Ollama bge-m3
+   │
+   ├────────── DeepSeek
+   │
+   ▼
+PostgreSQL + pgvector</pre>
+        <p>
+          Web 只与本机 API 通信；API 负责文档服务、问答编排、反馈与审核；Ollama 仅在本机提供
+          <code>bge-m3</code> 向量嵌入；DeepSeek 仅由 API 调用，会接收到当前问题和检索到的证据片段。
+        </p>
+      </section>
+
+      <section>
+        <h2>单轮问答流程</h2>
+        <pre class="diagram">
+中文问题
+ → 生成问题向量
+ → pgvector 相似度检索
+ → 距离门槛过滤（RAG_MAX_DISTANCE=0.45）
+ → DeepSeek 结构化生成
+ → 引用合同校验
+ → 回答或确定性拒答
+ → 保存日志与证据快照</pre>
+        <p>
+          每次提问独立，不携带会话历史；删除或编辑文档不会破坏历史日志中的证据快照。
+        </p>
+      </section>
+
+      <section>
+        <h2>页面截图</h2>
+        <p>以下截图来自通过真实人工验收的本地应用，只展示合成数据。</p>
+        <figure>
+          <img src="./assets/question.png" alt="问答页：中文回答、行内引用与证据卡片" width="1440" height="900" />
+          <figcaption>问答页：中文回答、行内引用与证据卡片</figcaption>
+        </figure>
+        <figure>
+          <img src="./assets/documents.png" alt="文档页：中文文档列表与编辑详情" width="1440" height="900" />
+          <figcaption>文档页：中文文档列表与编辑详情</figcaption>
+        </figure>
+        <figure>
+          <img src="./assets/logs.png" alt="日志页：问答日志详情与证据快照" width="1440" height="900" />
+          <figcaption>日志页：问答日志详情与证据快照</figcaption>
+        </figure>
+        <figure>
+          <img src="./assets/review-queue.png" alt="待处理页：拒答与没帮助项目、已解决与待处理状态" width="1440" height="900" />
+          <figcaption>待处理页：拒答与“没帮助”项目，含已解决与待处理状态</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>测试与评测摘要</h2>
+        <ul>
+          <li>单元测试 20 文件 / 173 用例；集成测试 7 文件 / 80 用例；Playwright 浏览器 E2E 完整流程通过。</li>
+          <li>固定评测集：6 个可回答问题、2 个生成阶段拒答、4 个检索阶段拒答。</li>
+          <li>真实 Ollama 检索评测：<strong>12/12</strong>；最终门槛 <code>RAG_MAX_DISTANCE=0.45</code>。</li>
+          <li>真实 DeepSeek 生成评测：<strong>12/12</strong>（仅由显式命令 <code>npm run eval:generation</code> 调用，可能产生费用）。</li>
+          <li><code>npm run verify</code> 全流程通过，且不调用真实 DeepSeek。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>本地运行</h2>
+        <p>请按 README 的“从空环境启动”章节执行；简要步骤：</p>
+        <ol>
+          <li>复制环境文件并填写 <code>DEEPSEEK_API_KEY</code>（<code>Copy-Item .env.example .env</code>）。</li>
+          <li><code>npm ci</code>、<code>docker compose up -d postgres postgres-test</code>、<code>ollama pull bge-m3</code>、<code>npm run migrate</code>。</li>
+          <li>两个终端分别运行 <code>npm run dev:api</code> 与 <code>npm run dev:web</code>。</li>
+          <li>浏览器访问 <code>http://127.0.0.1:5173</code>。</li>
+        </ol>
+        <p>本地端口：Web <code>127.0.0.1:5173</code>、API <code>127.0.0.1:4000</code>、开发 PostgreSQL <code>5434</code>、测试 PostgreSQL <code>5433</code>、Ollama <code>11434</code>。</p>
+        <p>
+          完整文档见
+          <a href="https://github.com/OWNER/REPOSITORY#readme">GitHub README</a>。
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>AnchorDesk — 本地 RAG 演示项目。本项目介绍页为纯静态页面，不包含任何在线 API 调用。</p>
+    </footer>
+  </div>
+</body>
+</html>
