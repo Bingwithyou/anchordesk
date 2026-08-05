@@ -215,7 +215,13 @@ A：所有测试与评测只使用 `*_test` 数据库并先重置，避免污染
 
 ## 十二、GitHub Pages 介绍页
 
-`docs/` 目录是一份**纯静态项目介绍页**（含四张页面截图），已配置为 GitHub Pages 发布源（`/docs`，部署自默认分支）。
+`docs/` 目录是一份**纯静态项目介绍页**（含四张页面截图），已通过本地预览检查，**尚未发布**。发布步骤：
+
+1. 创建 GitHub 仓库并配置 remote（`git remote add origin <仓库地址>`）。
+2. 推送默认分支。
+3. 在 GitHub 仓库 Settings → Pages 中，Source 选择 *Deploy from a branch*，Branch 选择默认分支，Folder 选择 `/docs`。
+4. 将 `docs/index.html` 中两处 `OWNER/REPOSITORY` 占位链接替换为真实仓库地址并重新推送。
+5. 发布后在本 README 中补充线上地址。
 
 > 这是项目介绍页。真实 RAG 功能需要按 README 在本机运行。
 
