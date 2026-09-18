@@ -1,4 +1,5 @@
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
@@ -7,6 +8,7 @@ import type { AppConfig } from './config.js';
 import { createDatabasePool } from './db/pool.js';
 import { ProviderError } from './providers/errors.js';
 import type { Providers } from './providers/types.js';
+import { MAX_UPLOAD_FILE_BYTES } from './services/document-service.js';
 import { documentRoutes } from './routes/documents.js';
 import { feedbackRoutes } from './routes/feedback.js';
 import { healthRoutes } from './routes/health.js';
@@ -56,6 +58,7 @@ export function buildApp(
   const documentService = createDocumentService({
     database,
     embeddingProvider: providers.embeddingProvider,
+    extractionProvider: providers.extractionProvider,
   });
   const questionService = createQuestionService({
     database,
@@ -124,6 +127,14 @@ export function buildApp(
     // @fastify/cors 默认只放行 GET/HEAD/POST，必须显式包含 PUT/DELETE，
     // 否则浏览器 preflight 会拦截文档更新、删除与待处理解决。
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+  app.register(multipart, {
+    limits: {
+      // 只允许一个文件字段，原始文件不超过 10 MB；
+      // 提取后的文本仍受 MAX_DOCUMENT_CONTENT_BYTES（100 KB）约束。
+      files: 1,
+      fileSize: MAX_UPLOAD_FILE_BYTES,
+    },
   });
   app.register(healthRoutes);
   app.register(documentRoutes, { documentService });

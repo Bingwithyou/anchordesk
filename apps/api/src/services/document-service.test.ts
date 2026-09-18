@@ -23,6 +23,23 @@ describe('文档输入合同', () => {
     });
   });
 
+  it('接受 pdf 与 docx 来源类型', () => {
+    expect(
+      parseCreateDocumentInput({
+        title: '论文',
+        content: '正文',
+        sourceType: 'pdf',
+      }).sourceType,
+    ).toBe('pdf');
+    expect(
+      parseCreateDocumentInput({
+        title: '手册',
+        content: '正文',
+        sourceType: 'docx',
+      }).sourceType,
+    ).toBe('docx');
+  });
+
   it.each([
     ['空标题', { title: '   ', content: '正文', sourceType: 'text' }],
     [

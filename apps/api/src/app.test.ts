@@ -36,6 +36,11 @@ const providers = {
       throw new Error('health 不应调用 Answer Provider');
     },
   },
+  extractionProvider: {
+    extract: async () => {
+      throw new Error('health 不应调用 Extraction Provider');
+    },
+  },
 } satisfies Providers;
 
 const apps: ReturnType<typeof buildApp>[] = [];

@@ -6,6 +6,7 @@ import type { FastifyInstance } from 'fastify';
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
 import type { AppConfig } from './config.js';
+import { LocalExtractionProvider } from './extract/local-extraction.js';
 import { DeepSeekAnswerProvider } from './providers/deepseek.js';
 import { OllamaEmbeddingProvider } from './providers/ollama.js';
 import type { Providers } from './providers/types.js';
@@ -26,6 +27,7 @@ export function createProviders(config: AppConfig): Providers {
       promptVersion: config.promptVersion,
       timeoutMs: config.deepseekTimeoutMs,
     }),
+    extractionProvider: new LocalExtractionProvider(),
   };
 }
 

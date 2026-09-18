@@ -13,7 +13,7 @@ export type Citation = {
   distance: number;
 };
 
-export type DocumentSourceType = 'markdown' | 'text';
+export type DocumentSourceType = 'markdown' | 'text' | 'pdf' | 'docx';
 
 export type DocumentSummary = {
   id: string;

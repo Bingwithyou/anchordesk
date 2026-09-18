@@ -20,7 +20,18 @@ export interface AnswerProvider {
   ): Promise<string>;
 }
 
+export interface ExtractedFile {
+  filename: string;
+  data: Buffer;
+}
+
+export interface DocumentExtractionProvider {
+  /** 把上传的二进制文件解析为 UTF-8 纯文本；提取失败或质量不达标必须抛错 */
+  extract(file: ExtractedFile, signal?: AbortSignal): Promise<string>;
+}
+
 export interface Providers {
   embeddingProvider: EmbeddingProvider;
   answerProvider: AnswerProvider;
+  extractionProvider: DocumentExtractionProvider;
 }

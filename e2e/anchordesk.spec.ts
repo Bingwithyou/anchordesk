@@ -24,7 +24,8 @@ test('完整 E2E 流程：文档、问答、反馈、拒答、待处理与日志
   await page.getByRole('button', { name: '新建文档' }).first().click();
   await page.getByLabel('标题').fill(DOCUMENT_TITLE);
   await page.getByLabel('内容').fill(DOCUMENT_CONTENT);
-  await page.getByRole('button', { name: '保存' }).click();
+  // 文件选择控件也是 button 角色且 label 含“保存”二字，必须精确匹配提交按钮。
+  await page.getByRole('button', { name: '保存', exact: true }).click();
   await expect(page.getByText('文档已创建')).toBeVisible();
   const documentItem = page.getByRole('button', {
     name: new RegExp(DOCUMENT_TITLE),
@@ -114,4 +115,32 @@ test('完整 E2E 流程：文档、问答、反馈、拒答、待处理与日志
   await expect(logDetail.getByText('未生成')).toBeVisible();
   await expect(logDetail.getByText('证据快照（1）')).toBeVisible();
   await expect(logDetail.getByText('未过门槛')).toBeVisible();
+});
+
+test('上传 docx 文件由服务端解析入库', async ({ page }) => {
+  // 1. 进入文档页并新建文档。
+  await page.goto('/');
+  await page.getByRole('button', { name: '知识文档' }).click();
+  await page.getByRole('button', { name: '新建文档' }).first().click();
+
+  // 2. 选择 docx 文件：客户端不读文本，仅提示保存时由服务端解析。
+  await page
+    .locator('#document-file')
+    .setInputFiles('apps/api/src/test/data/sample.docx');
+  await expect(
+    page.getByText(/已选择 sample\.docx，保存时将上传并由服务端解析（docx）/),
+  ).toBeVisible();
+  await expect(page.getByLabel('标题')).toHaveValue('sample');
+
+  // 3. 保存触发 multipart 上传，成功后进入编辑态。
+  await page.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(page.getByText('文档已创建')).toBeVisible();
+  await expect(page.getByLabel('内容')).toHaveValue(
+    '这是 Fake 提取的文档内容，用于验证上传链路。',
+  );
+
+  // 4. 列表中出现该文档，来源类型为 docx。
+  const documentItem = page.getByRole('button', { name: /sample/ });
+  await expect(documentItem).toBeVisible();
+  await expect(documentItem).toContainText('docx');
 });

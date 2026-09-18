@@ -5,9 +5,13 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { loadDatabaseUrls } from '../db/database-config.js';
 import { createDatabasePool } from '../db/pool.js';
 import { resetTestDatabase } from '../db/reset-test-db.js';
+import { LocalExtractionProvider } from '../extract/local-extraction.js';
 import { ProviderError } from '../providers/errors.js';
 import type { EmbeddingProvider } from '../providers/types.js';
-import { FakeEmbeddingProvider } from '../test/fixtures.js';
+import {
+  FakeEmbeddingProvider,
+  FakeExtractionProvider,
+} from '../test/fixtures.js';
 import { createTestApp, testAppConfig } from '../test/test-app.js';
 
 const apps: ReturnType<typeof createTestApp>[] = [];
@@ -732,5 +736,260 @@ describe('文档 API', () => {
     } finally {
       await database.end();
     }
+  });
+});
+
+describe('文档上传 API', () => {
+  const boundary = '----anchordesk-test';
+  const multipartHeaders = {
+    'content-type': `multipart/form-data; boundary=${boundary}`,
+  };
+
+  function multipartPayload(
+    fields: Array<{ name: string; value: string }>,
+    file: { fieldname: string; filename: string; data: Buffer } | null,
+  ): Buffer {
+    const parts: Buffer[] = [];
+    for (const field of fields) {
+      parts.push(
+        Buffer.from(
+          `--${boundary}\r\nContent-Disposition: form-data; name="${field.name}"\r\n\r\n${field.value}\r\n`,
+        ),
+      );
+    }
+    if (file !== null) {
+      parts.push(
+        Buffer.from(
+          `--${boundary}\r\nContent-Disposition: form-data; name="${file.fieldname}"; filename="${file.filename}"\r\nContent-Type: application/octet-stream\r\n\r\n`,
+        ),
+      );
+      parts.push(file.data);
+    }
+    parts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
+    return Buffer.concat(parts);
+  }
+
+  function uploadRequest(
+    fields: Array<{ name: string; value: string }>,
+    file: { fieldname: string; filename: string; data: Buffer } | null,
+  ) {
+    return {
+      method: 'POST',
+      url: '/api/documents/upload',
+      headers: multipartHeaders,
+      payload: multipartPayload(fields, file),
+    } as const;
+  }
+
+  it('上传 docx 由提取 Provider 解析并按指定标题入库', async () => {
+    const app = createTestApp();
+    apps.push(app);
+    const created = await app.inject(
+      uploadRequest(
+        [{ name: 'title', value: '上传的 Word 文档' }],
+        {
+          fieldname: 'file',
+          filename: '手册.docx',
+          data: Buffer.from('假的 docx 内容'),
+        },
+      ),
+    );
+
+    expect(created.statusCode).toBe(201);
+    const documentId = created.json<{ id: string }>().id;
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/api/documents/${documentId}`,
+    });
+
+    expect(detail.json()).toMatchObject({
+      id: documentId,
+      title: '上传的 Word 文档',
+      content: '这是 Fake 提取的文档内容，用于验证上传链路。',
+      sourceType: 'docx',
+    });
+  });
+
+  it('未传标题时默认取文件名主体', async () => {
+    const app = createTestApp();
+    apps.push(app);
+    const created = await app.inject(
+      uploadRequest([], {
+        fieldname: 'file',
+        filename: '说明文档.md',
+        data: Buffer.from('x'),
+      }),
+    );
+    const documentId = created.json<{ id: string }>().id;
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/api/documents/${documentId}`,
+    });
+
+    expect(created.statusCode).toBe(201);
+    expect(detail.json()).toMatchObject({
+      title: '说明文档',
+      sourceType: 'markdown',
+    });
+  });
+
+  it('真实本地提取器可解析 txt 上传', async () => {
+    const app = createTestApp({
+      extractionProvider: new LocalExtractionProvider(),
+    });
+    apps.push(app);
+    const created = await app.inject(
+      uploadRequest([], {
+        fieldname: 'file',
+        filename: '笔记.txt',
+        data: Buffer.from('真实文本内容', 'utf8'),
+      }),
+    );
+    const documentId = created.json<{ id: string }>().id;
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/api/documents/${documentId}`,
+    });
+
+    expect(detail.json()).toMatchObject({
+      sourceType: 'text',
+      content: '真实文本内容',
+    });
+  });
+
+  it('pdf 在解析未启用时返回 400 明确错误', async () => {
+    const app = createTestApp({
+      extractionProvider: new LocalExtractionProvider(),
+    });
+    apps.push(app);
+    const response = await app.inject(
+      uploadRequest([], {
+        fieldname: 'file',
+        filename: '论文.pdf',
+        data: Buffer.from('%PDF-1.4'),
+      }),
+    );
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      code: 'pdf_extraction_disabled',
+      message: 'PDF 解析尚未启用',
+    });
+  });
+
+  it('未知扩展名返回 400 且不创建文档', async () => {
+    const app = createTestApp();
+    apps.push(app);
+    const before = await app.inject({ method: 'GET', url: '/api/documents' });
+    const response = await app.inject(
+      uploadRequest([], {
+        fieldname: 'file',
+        filename: '表格.xlsx',
+        data: Buffer.from('x'),
+      }),
+    );
+    const after = await app.inject({ method: 'GET', url: '/api/documents' });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      code: 'unsupported_file_type',
+      message: '不支持的文件类型，仅支持 .md、.txt、.pdf、.docx',
+    });
+    expect(after.json()).toEqual(before.json());
+  });
+
+  it('提取结果为空时返回 400 且不创建文档', async () => {
+    const extractionProvider = new FakeExtractionProvider(() => '  \n ');
+    const app = createTestApp({ extractionProvider });
+    apps.push(app);
+    const before = await app.inject({ method: 'GET', url: '/api/documents' });
+    const response = await app.inject(
+      uploadRequest([], {
+        fieldname: 'file',
+        filename: '空白.docx',
+        data: Buffer.from('x'),
+      }),
+    );
+    const after = await app.inject({ method: 'GET', url: '/api/documents' });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      code: 'unparseable_document',
+      message: '文件内容无法解析，请确认文件未损坏且不是空扫描件',
+    });
+    expect(after.json()).toEqual(before.json());
+  });
+
+  it('提取文本超过 100 KB 时返回 400 且不创建文档', async () => {
+    const extractionProvider = new FakeExtractionProvider(
+      () => `${'中'.repeat(34_133)}ab`,
+    );
+    const app = createTestApp({ extractionProvider });
+    apps.push(app);
+    const before = await app.inject({ method: 'GET', url: '/api/documents' });
+    const response = await app.inject(
+      uploadRequest([], {
+        fieldname: 'file',
+        filename: '超限.docx',
+        data: Buffer.from('x'),
+      }),
+    );
+    const after = await app.inject({ method: 'GET', url: '/api/documents' });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      code: 'invalid_document',
+      message: '文档输入不合法',
+    });
+    expect(after.json()).toEqual(before.json());
+  });
+
+  it('multipart 缺少文件字段返回 400', async () => {
+    const app = createTestApp();
+    apps.push(app);
+    const response = await app.inject(
+      uploadRequest([{ name: 'title', value: '只有标题' }], null),
+    );
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      code: 'invalid_document',
+      message: '文档输入不合法',
+    });
+  });
+
+  it('JSON 请求上传路由返回 406', async () => {
+    const app = createTestApp();
+    apps.push(app);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/documents/upload',
+      headers: { 'content-type': 'application/json' },
+      payload: { title: '不是 multipart' },
+    });
+
+    expect(response.statusCode).toBe(406);
+    expect(response.json()).toEqual({
+      code: 'invalid_request',
+      message: '请求数据不合法',
+    });
+  });
+
+  it('文件超过 10 MB 上限返回 413', async () => {
+    const app = createTestApp();
+    apps.push(app);
+    const response = await app.inject(
+      uploadRequest([], {
+        fieldname: 'file',
+        filename: '超大.docx',
+        data: Buffer.alloc(10 * 1024 * 1024 + 1),
+      }),
+    );
+
+    expect(response.statusCode).toBe(413);
+    expect(response.json()).toEqual({
+      code: 'file_too_large',
+      message: '文件超过 10 MB 上限',
+    });
   });
 });

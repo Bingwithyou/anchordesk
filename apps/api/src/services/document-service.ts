@@ -6,19 +6,29 @@ import type {
   CreateDocumentRequest,
   DocumentCreatedResponse,
   DocumentDetail,
+  DocumentSourceType,
   DocumentSummary,
   DocumentUpdatedResponse,
   UpdateDocumentRequest,
 } from '@anchordesk/shared';
 
 import { inTransaction } from '../db/transaction.js';
+import { assessExtractionQuality } from '../extract/quality-gate.js';
 import { ProviderError } from '../providers/errors.js';
-import type { EmbeddingProvider } from '../providers/types.js';
+import type {
+  DocumentExtractionProvider,
+  EmbeddingProvider,
+  ExtractedFile,
+} from '../providers/types.js';
 import { chunkDocument } from '../rag/chunk.js';
 
 export interface DocumentService {
   createDocument(
     value: unknown,
+    signal?: AbortSignal,
+  ): Promise<DocumentCreatedResponse>;
+  createDocumentFromFile(
+    input: DocumentUploadInput,
     signal?: AbortSignal,
   ): Promise<DocumentCreatedResponse>;
   deleteDocument(id: string): Promise<void>;
@@ -31,21 +41,65 @@ export interface DocumentService {
   ): Promise<DocumentUpdatedResponse>;
 }
 
+export interface DocumentUploadInput {
+  filename: string;
+  data: Buffer;
+  title?: string;
+}
+
 export interface CreateDocumentServiceOptions {
   database: Pool;
   embeddingProvider: EmbeddingProvider;
+  extractionProvider: DocumentExtractionProvider;
 }
 
 export const MAX_DOCUMENT_CONTENT_BYTES = 100 * 1024;
 
+/** 上传文件的原始大小上限（提取后的文本仍受 MAX_DOCUMENT_CONTENT_BYTES 约束） */
+export const MAX_UPLOAD_FILE_BYTES = 10 * 1024 * 1024;
+
+const sourceTypes: ReadonlySet<string> = new Set([
+  'markdown',
+  'text',
+  'pdf',
+  'docx',
+]);
+
+function isDocumentSourceType(value: string): value is DocumentSourceType {
+  return sourceTypes.has(value);
+}
+
+const sourceTypeByExtension: Readonly<Record<string, DocumentSourceType>> = {
+  md: 'markdown',
+  txt: 'text',
+  pdf: 'pdf',
+  docx: 'docx',
+};
+
+function extensionOf(filename: string): string {
+  const separatorIndex = filename.lastIndexOf('.');
+  if (separatorIndex < 0) {
+    return '';
+  }
+  return filename.slice(separatorIndex + 1).toLowerCase();
+}
+
+function filenameTitle(filename: string): string {
+  return filename.replace(/\.[^.]*$/u, '');
+}
+
 export type DocumentServiceErrorCode =
   | 'invalid_document'
   | 'document_not_found'
-  | 'document_conflict';
+  | 'document_conflict'
+  | 'unsupported_file_type'
+  | 'unparseable_document'
+  | 'pdf_extraction_disabled'
+  | 'file_too_large';
 
 const documentErrorDetails: Record<
   DocumentServiceErrorCode,
-  { message: string; statusCode: 400 | 404 | 409 }
+  { message: string; statusCode: 400 | 404 | 409 | 413 }
 > = {
   invalid_document: { message: '文档输入不合法', statusCode: 400 },
   document_not_found: { message: '文档不存在', statusCode: 404 },
@@ -53,11 +107,24 @@ const documentErrorDetails: Record<
     message: '文档已被修改，请重新加载后再试',
     statusCode: 409,
   },
+  unsupported_file_type: {
+    message: '不支持的文件类型，仅支持 .md、.txt、.pdf、.docx',
+    statusCode: 400,
+  },
+  unparseable_document: {
+    message: '文件内容无法解析，请确认文件未损坏且不是空扫描件',
+    statusCode: 400,
+  },
+  pdf_extraction_disabled: {
+    message: 'PDF 解析尚未启用',
+    statusCode: 400,
+  },
+  file_too_large: { message: '文件超过 10 MB 上限', statusCode: 413 },
 };
 
 export class DocumentServiceError extends Error {
   readonly code: DocumentServiceErrorCode;
-  readonly statusCode: 400 | 404 | 409;
+  readonly statusCode: 400 | 404 | 409 | 413;
 
   constructor(code: DocumentServiceErrorCode = 'invalid_document') {
     const details = documentErrorDetails[code];
@@ -80,7 +147,8 @@ export function parseCreateDocumentInput(value: unknown): CreateDocumentRequest 
     Object.keys(input).some((field) => !allowedFields.has(field)) ||
     typeof input.title !== 'string' ||
     typeof input.content !== 'string' ||
-    (input.sourceType !== 'markdown' && input.sourceType !== 'text')
+    typeof input.sourceType !== 'string' ||
+    !isDocumentSourceType(input.sourceType)
   ) {
     throw new DocumentServiceError();
   }
@@ -243,38 +311,70 @@ async function insertDocumentChunks(
 export function createDocumentService({
   database,
   embeddingProvider,
+  extractionProvider,
 }: CreateDocumentServiceOptions): DocumentService {
+  async function persistNewDocument(
+    input: CreateDocumentRequest,
+    signal?: AbortSignal,
+  ): Promise<DocumentCreatedResponse> {
+    const chunks = chunkDocument(input.content);
+    if (chunks.length === 0) {
+      throw new DocumentServiceError();
+    }
+    const embeddings = await embeddingProvider.embedMany(chunks, signal);
+    validateEmbeddings(embeddings, chunks.length);
+
+    const documentId = randomUUID();
+    await inTransaction(database, async (client) => {
+      await client.query(
+        `INSERT INTO documents
+           (id, title, content, source_type, created_at, updated_at, indexed_at)
+         VALUES
+           ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        [documentId, input.title, input.content, input.sourceType],
+      );
+      await insertDocumentChunks(
+        client,
+        documentId,
+        chunks,
+        embeddings,
+      );
+    });
+
+    return { id: documentId, chunkCount: chunks.length };
+  }
+
   return {
     async createDocument(
       value: unknown,
       signal?: AbortSignal,
     ): Promise<DocumentCreatedResponse> {
-      const input = parseCreateDocumentInput(value);
-      const chunks = chunkDocument(input.content);
-      if (chunks.length === 0) {
-        throw new DocumentServiceError();
+      return persistNewDocument(parseCreateDocumentInput(value), signal);
+    },
+
+    async createDocumentFromFile(
+      input: DocumentUploadInput,
+      signal?: AbortSignal,
+    ): Promise<DocumentCreatedResponse> {
+      const sourceType = sourceTypeByExtension[extensionOf(input.filename)];
+      if (sourceType === undefined) {
+        throw new DocumentServiceError('unsupported_file_type');
       }
-      const embeddings = await embeddingProvider.embedMany(chunks, signal);
-      validateEmbeddings(embeddings, chunks.length);
-
-      const documentId = randomUUID();
-      await inTransaction(database, async (client) => {
-        await client.query(
-          `INSERT INTO documents
-             (id, title, content, source_type, created_at, updated_at, indexed_at)
-           VALUES
-             ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-          [documentId, input.title, input.content, input.sourceType],
-        );
-        await insertDocumentChunks(
-          client,
-          documentId,
-          chunks,
-          embeddings,
-        );
-      });
-
-      return { id: documentId, chunkCount: chunks.length };
+      const title =
+        input.title !== undefined && input.title.trim() !== ''
+          ? input.title
+          : filenameTitle(input.filename);
+      const extracted = await extractionProvider.extract(
+        { filename: input.filename, data: input.data } satisfies ExtractedFile,
+        signal,
+      );
+      if (!assessExtractionQuality(extracted).ok) {
+        throw new DocumentServiceError('unparseable_document');
+      }
+      return persistNewDocument(
+        parseCreateDocumentInput({ title, content: extracted, sourceType }),
+        signal,
+      );
     },
 
     async deleteDocument(id: string): Promise<void> {

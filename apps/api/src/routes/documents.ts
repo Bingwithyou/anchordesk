@@ -28,6 +28,36 @@ export const documentRoutes: FastifyPluginAsync<DocumentRoutesOptions> = async (
     return reply.code(201).send(result);
   });
 
+  app.post('/api/documents/upload', async (request, reply) => {
+    const part = await request.file();
+    if (part === undefined) {
+      throw new DocumentServiceError('invalid_document');
+    }
+    let data: Buffer;
+    try {
+      data = await part.toBuffer();
+    } catch (error) {
+      if (error instanceof app.multipartErrors.RequestFileTooLargeError) {
+        throw new DocumentServiceError('file_too_large');
+      }
+      throw error;
+    }
+    const titleField = part.fields.title;
+    const title =
+      titleField !== undefined &&
+      !Array.isArray(titleField) &&
+      titleField.type === 'field' &&
+      typeof titleField.value === 'string'
+        ? titleField.value
+        : undefined;
+    const result = await documentService.createDocumentFromFile({
+      filename: part.filename,
+      data,
+      title,
+    });
+    return reply.code(201).send(result);
+  });
+
   app.get('/api/documents', async () => documentService.listDocuments());
 
   app.delete<{ Params: { id: string } }>(

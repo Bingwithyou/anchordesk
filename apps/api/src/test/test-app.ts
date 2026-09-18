@@ -6,10 +6,15 @@ import {
 } from '../db/database-config.js';
 import type {
   AnswerProvider,
+  DocumentExtractionProvider,
   EmbeddingProvider,
   Providers,
 } from '../providers/types.js';
-import { FakeAnswerProvider, FakeEmbeddingProvider } from './fixtures.js';
+import {
+  FakeAnswerProvider,
+  FakeEmbeddingProvider,
+  FakeExtractionProvider,
+} from './fixtures.js';
 
 const databaseUrls = loadDatabaseUrls();
 assertSafeTestDatabaseUrls(databaseUrls);
@@ -34,12 +39,14 @@ export const testAppConfig = {
 export interface TestAppOptions {
   embeddingProvider?: EmbeddingProvider;
   answerProvider?: AnswerProvider;
+  extractionProvider?: DocumentExtractionProvider;
   config?: Partial<Pick<AppConfig, 'ragMaxDistance'>>;
 }
 
 export function createTestApp({
   embeddingProvider = new FakeEmbeddingProvider(),
   answerProvider = new FakeAnswerProvider(),
+  extractionProvider = new FakeExtractionProvider(),
   config = {},
 }: TestAppOptions = {}): ReturnType<typeof buildApp> {
   if ('databaseUrl' in config || 'testDatabaseUrl' in config) {
@@ -49,6 +56,7 @@ export function createTestApp({
   const providers = {
     embeddingProvider,
     answerProvider,
+    extractionProvider,
   } satisfies Providers;
   return buildApp({ ...testAppConfig, ...config }, providers);
 }

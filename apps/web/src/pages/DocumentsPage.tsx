@@ -15,6 +15,9 @@ import { formatDateTime, toUtf8ByteLength } from '../format.js';
 
 const MAX_DOCUMENT_BYTES = 100 * 1024;
 
+/** 上传文件的原始大小上限（pdf/docx 由服务端解析，提取文本仍受 100 KB 约束） */
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
 interface FormState {
   title: string;
   content: string;
@@ -44,6 +47,10 @@ export function DocumentsPage({ api }: DocumentsPageProps) {
   const [deleting, setDeleting] = useState(false);
   const [fileNotice, setFileNotice] = useState<string | null>(null);
   const [needsReload, setNeedsReload] = useState(false);
+  const [pendingUpload, setPendingUpload] = useState<{
+    file: File;
+    sourceType: DocumentSourceType;
+  } | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const detailAbortRef = useRef<AbortController | null>(null);
@@ -113,6 +120,7 @@ export function DocumentsPage({ api }: DocumentsPageProps) {
     setSaveError(null);
     setSaveMessage(null);
     setFileNotice(null);
+    setPendingUpload(null);
     setIsNew(false);
     try {
       const result = await api.getDocument(id, { signal: controller.signal });
@@ -152,6 +160,7 @@ export function DocumentsPage({ api }: DocumentsPageProps) {
     setSaveError(null);
     setSaveMessage(null);
     setFileNotice(null);
+    setPendingUpload(null);
   }
 
   function startNewDocument() {
@@ -167,11 +176,15 @@ export function DocumentsPage({ api }: DocumentsPageProps) {
       return;
     }
     const title = form.title.trim();
-    if (title === '' || form.content.trim() === '') {
+    const hasPendingUpload = isNew && pendingUpload !== null;
+    if (title === '' || (!hasPendingUpload && form.content.trim() === '')) {
       setSaveError('标题和内容不能为空');
       return;
     }
-    if (toUtf8ByteLength(form.content) > MAX_DOCUMENT_BYTES) {
+    if (
+      !hasPendingUpload &&
+      toUtf8ByteLength(form.content) > MAX_DOCUMENT_BYTES
+    ) {
       setSaveError('内容超过 100 KB 上限');
       return;
     }
@@ -184,17 +197,24 @@ export function DocumentsPage({ api }: DocumentsPageProps) {
     setSaveMessage(null);
     try {
       if (isNew) {
-        const created = await api.createDocument(
-          {
-            title,
-            content: form.content,
-            sourceType: form.sourceType,
-          },
-          { signal: controller.signal },
-        );
+        const created =
+          pendingUpload !== null
+            ? await api.uploadDocument(
+                { file: pendingUpload.file, title },
+                { signal: controller.signal },
+              )
+            : await api.createDocument(
+                {
+                  title,
+                  content: form.content,
+                  sourceType: form.sourceType,
+                },
+                { signal: controller.signal },
+              );
         if (!isCurrentMutation(controller)) {
           return;
         }
+        setPendingUpload(null);
         await loadDocuments();
         if (!isCurrentMutation(controller)) {
           return;
@@ -317,24 +337,45 @@ export function DocumentsPage({ api }: DocumentsPageProps) {
       return;
     }
     const extension = file.name.toLowerCase().split('.').pop();
-    if (extension !== 'md' && extension !== 'txt') {
-      setFileNotice('只接受 .md 或 .txt 文件');
+    const sourceType: DocumentSourceType | undefined =
+      extension === 'md'
+        ? 'markdown'
+        : extension === 'txt'
+          ? 'text'
+          : extension === 'pdf'
+            ? 'pdf'
+            : extension === 'docx'
+              ? 'docx'
+              : undefined;
+    if (sourceType === undefined) {
+      setFileNotice('只接受 .md、.txt、.pdf 或 .docx 文件');
       return;
     }
-    const sourceType: DocumentSourceType =
-      extension === 'md' ? 'markdown' : 'text';
-    if (file.size > MAX_DOCUMENT_BYTES) {
-      setFileNotice('文件超过 100 KB 上限，请精简内容');
+    const title = file.name.replace(/\.[^.]*$/u, '');
+    if (sourceType === 'markdown' || sourceType === 'text') {
+      if (file.size > MAX_DOCUMENT_BYTES) {
+        setFileNotice('文件超过 100 KB 上限，请精简内容');
+        return;
+      }
+      const content = await file.text();
+      if (toUtf8ByteLength(content) > MAX_DOCUMENT_BYTES) {
+        setFileNotice('文件内容超过 100 KB 上限，请精简内容');
+        return;
+      }
+      setForm((current) => ({ ...current, content, sourceType, title }));
+      setPendingUpload(null);
+      setFileNotice(`已从 ${file.name} 载入内容（${sourceType}）`);
       return;
     }
-    const content = await file.text();
-    if (toUtf8ByteLength(content) > MAX_DOCUMENT_BYTES) {
-      setFileNotice('文件内容超过 100 KB 上限，请精简内容');
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setFileNotice('文件超过 10 MB 上限');
       return;
     }
-    const title = file.name.replace(/\.(md|txt)$/iu, '');
-    setForm((current) => ({ ...current, content, sourceType, title }));
-    setFileNotice(`已从 ${file.name} 载入内容（${sourceType}）`);
+    setForm((current) => ({ ...current, content: '', sourceType, title }));
+    setPendingUpload({ file, sourceType });
+    setFileNotice(
+      `已选择 ${file.name}，保存时将上传并由服务端解析（${sourceType}）`,
+    );
   }
 
   const selectedSummary =
@@ -470,11 +511,13 @@ export function DocumentsPage({ api }: DocumentsPageProps) {
                       sourceType: event.target.value as DocumentSourceType,
                     }))
                   }
-                  disabled={saving || deleting}
+                  disabled={saving || deleting || pendingUpload !== null}
                   className="rounded-md border border-stone-300 px-3 py-2 text-sm disabled:bg-stone-100 focus:outline-2 focus:outline-blue-700"
                 >
                   <option value="text">文本 (text)</option>
                   <option value="markdown">Markdown (markdown)</option>
+                  <option value="pdf">PDF (pdf)</option>
+                  <option value="docx">Word (docx)</option>
                 </select>
               </div>
 
@@ -483,12 +526,12 @@ export function DocumentsPage({ api }: DocumentsPageProps) {
                   htmlFor="document-file"
                   className="mb-1 block text-sm font-medium text-stone-700"
                 >
-                  从本地文件载入（.md / .txt，≤ 100 KB）
+                  从本地文件载入（.md / .txt ≤ 100 KB；.pdf / .docx ≤ 10 MB，保存时由服务端解析）
                 </label>
                 <input
                   id="document-file"
                   type="file"
-                  accept=".md,.txt"
+                  accept=".md,.txt,.pdf,.docx"
                   disabled={saving || deleting}
                   onChange={(event) => void handleFileChange(event.target.files?.[0])}
                   className="block w-full text-sm text-stone-600 file:mr-3 file:rounded file:border-0 file:bg-stone-200 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-stone-700 hover:file:bg-stone-300"

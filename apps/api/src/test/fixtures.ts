@@ -2,7 +2,9 @@ import { createHash } from 'node:crypto';
 
 import type {
   AnswerProvider,
+  DocumentExtractionProvider,
   EmbeddingProvider,
+  ExtractedFile,
   RetrievedChunk,
 } from '../providers/types.js';
 
@@ -10,6 +12,8 @@ export type FakeAnswerResolver = (
   question: string,
   evidence: RetrievedChunk[],
 ) => string;
+
+export type FakeExtractionResolver = (file: ExtractedFile) => string;
 
 function validateFakeEmbedding(vector: readonly number[]): void {
   if (
@@ -75,5 +79,21 @@ export class FakeAnswerProvider implements AnswerProvider {
   ): Promise<string> {
     signal?.throwIfAborted();
     return this.#resolve(question, evidence);
+  }
+}
+
+const defaultExtraction: FakeExtractionResolver = () =>
+  '这是 Fake 提取的文档内容，用于验证上传链路。';
+
+export class FakeExtractionProvider implements DocumentExtractionProvider {
+  readonly #resolve: FakeExtractionResolver;
+
+  constructor(resolve: FakeExtractionResolver = defaultExtraction) {
+    this.#resolve = resolve;
+  }
+
+  async extract(file: ExtractedFile, signal?: AbortSignal): Promise<string> {
+    signal?.throwIfAborted();
+    return this.#resolve(file);
   }
 }

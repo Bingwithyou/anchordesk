@@ -33,6 +33,10 @@ describe('数据库迁移', () => {
 
     expect(before.rows).toEqual([
       { applied_at: expect.any(Date), filename: '001_init.sql' },
+      {
+        applied_at: expect.any(Date),
+        filename: '002_document_source_types.sql',
+      },
     ]);
     expect(after.rows).toEqual(before.rows);
   });
@@ -64,7 +68,10 @@ describe('数据库迁移', () => {
       expect(migrationRecord.rows[0]?.count).toBe('0');
 
       const rerun = await runMigrations({ connectionString: testDatabaseUrl });
-      expect(rerun).toEqual({ applied: [], skipped: ['001_init.sql'] });
+      expect(rerun).toEqual({
+        applied: [],
+        skipped: ['001_init.sql', '002_document_source_types.sql'],
+      });
     } finally {
       await rm(directory, { force: true, recursive: true });
     }

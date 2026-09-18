@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import type { AppConfig } from './config.js';
 import { DeepSeekAnswerProvider } from './providers/deepseek.js';
+import { LocalExtractionProvider } from './extract/local-extraction.js';
 import { OllamaEmbeddingProvider } from './providers/ollama.js';
 import type { Providers } from './providers/types.js';
 import { createProviders, startServer } from './server.js';
@@ -20,6 +21,9 @@ const providers = {
   },
   answerProvider: {
     generate: async () => '',
+  },
+  extractionProvider: {
+    extract: async () => '未使用',
   },
 } satisfies Providers;
 
@@ -54,6 +58,9 @@ describe('API 真实启动边界', () => {
     );
     expect(configuredProviders.answerProvider).toBeInstanceOf(
       DeepSeekAnswerProvider,
+    );
+    expect(configuredProviders.extractionProvider).toBeInstanceOf(
+      LocalExtractionProvider,
     );
   });
 

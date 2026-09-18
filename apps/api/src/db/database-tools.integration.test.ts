@@ -71,7 +71,7 @@ describe('测试数据库工具', () => {
 
       expect(state.rows[0]).toMatchObject({
         documents: '0',
-        migration_count: '1',
+        migration_count: '2',
         reset_probe: null,
         vector_version: expect.stringMatching(/^\d+\.\d+/u),
       });

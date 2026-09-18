@@ -66,14 +66,16 @@ describe('共享问答合同', () => {
     type ExpectedSummary = {
       id: string;
       title: string;
-      sourceType: 'markdown' | 'text';
+      sourceType: 'markdown' | 'text' | 'pdf' | 'docx';
       createdAt: string;
       updatedAt: string;
       indexedAt: string;
       chunkCount: number;
     };
 
-    expectTypeOf<DocumentSourceType>().toEqualTypeOf<'markdown' | 'text'>();
+    expectTypeOf<DocumentSourceType>().toEqualTypeOf<
+      'markdown' | 'text' | 'pdf' | 'docx'
+    >();
     expectTypeOf<DocumentSummary>().toEqualTypeOf<ExpectedSummary>();
     expectTypeOf<DocumentDetail>().toEqualTypeOf<
       ExpectedSummary & { content: string }

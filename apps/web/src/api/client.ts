@@ -48,21 +48,12 @@ interface RequestOptions {
   signal?: AbortSignal;
 }
 
-async function requestJson<T>(
-  baseUrl: string,
-  method: string,
-  path: string,
-  body?: unknown,
-  options: RequestOptions = {},
-): Promise<T> {
-  let response: Response;
+async function fetchWithFallback(
+  url: string,
+  init: RequestInit,
+): Promise<Response> {
   try {
-    response = await fetch(`${baseUrl}${path}`, {
-      method,
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: options.signal,
-    });
+    return await fetch(url, init);
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw error;
@@ -71,7 +62,9 @@ async function requestJson<T>(
       message: '无法连接本机 API，请确认后端已经启动',
     });
   }
+}
 
+async function handleResponse<T>(response: Response): Promise<T> {
   if (response.status === 204) {
     return undefined as T;
   }
@@ -100,12 +93,51 @@ async function requestJson<T>(
   return payload as T;
 }
 
+async function requestJson<T>(
+  baseUrl: string,
+  method: string,
+  path: string,
+  body?: unknown,
+  options: RequestOptions = {},
+): Promise<T> {
+  const response = await fetchWithFallback(`${baseUrl}${path}`, {
+    method,
+    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    signal: options.signal,
+  });
+  return handleResponse(response);
+}
+
+async function requestMultipart<T>(
+  baseUrl: string,
+  path: string,
+  form: FormData,
+  options: RequestOptions = {},
+): Promise<T> {
+  const response = await fetchWithFallback(`${baseUrl}${path}`, {
+    method: 'POST',
+    body: form,
+    signal: options.signal,
+  });
+  return handleResponse(response);
+}
+
+export interface UploadDocumentInput {
+  file: File;
+  title?: string;
+}
+
 export interface ApiClient {
   askQuestion(question: string, options?: RequestOptions): Promise<QuestionResponse>;
   listDocuments(options?: RequestOptions): Promise<DocumentSummary[]>;
   getDocument(id: string, options?: RequestOptions): Promise<DocumentDetail>;
   createDocument(
     input: CreateDocumentRequest,
+    options?: RequestOptions,
+  ): Promise<DocumentCreatedResponse>;
+  uploadDocument(
+    input: UploadDocumentInput,
     options?: RequestOptions,
   ): Promise<DocumentCreatedResponse>;
   updateDocument(
@@ -138,6 +170,15 @@ export function createApiClient(baseUrl: string = DEFAULT_API_BASE_URL): ApiClie
       requestJson(baseUrl, 'GET', `/api/documents/${id}`, undefined, options),
     createDocument: (input, options) =>
       requestJson(baseUrl, 'POST', '/api/documents', input, options),
+    uploadDocument: (input, options) => {
+      const form = new FormData();
+      // title 必须先于 file 追加：multipart 流中 file 之前的字段才会挂在 file part 上
+      if (input.title !== undefined && input.title.trim() !== '') {
+        form.append('title', input.title);
+      }
+      form.append('file', input.file);
+      return requestMultipart(baseUrl, '/api/documents/upload', form, options);
+    },
     updateDocument: (id, input, options) =>
       requestJson(baseUrl, 'PUT', `/api/documents/${id}`, input, options),
     deleteDocument: (id, options) =>

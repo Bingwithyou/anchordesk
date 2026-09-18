@@ -13,6 +13,7 @@ import {
 import {
   FakeAnswerProvider,
   FakeEmbeddingProvider,
+  FakeExtractionProvider,
   type FakeAnswerResolver,
 } from './fixtures.js';
 
@@ -75,6 +76,7 @@ export function createE2EApp(
   const providers = {
     embeddingProvider: new FakeEmbeddingProvider(),
     answerProvider: new FakeAnswerProvider(buildE2EAnswerResolver()),
+    extractionProvider: new FakeExtractionProvider(),
   };
 
   return buildApp(config, providers);
