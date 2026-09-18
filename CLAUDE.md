@@ -30,7 +30,7 @@ npm run dev                 # 仅启动 web（先构建 shared）；npm run dev:
 ```bash
 npm run test                 # 单元测试（仅 api workspace，排除 *.integration.test.ts，不需要数据库）
 npm run test:integration     # 集成测试（先自动 db:test:reset，串行运行）
-npm run test:e2e             # Playwright E2E（先自动 db:test:reset；自起 Fake API :4100 + Vite :5173）
+npm run test:e2e             # Playwright E2E（先自动 db:test:reset；自起 Fake API :4100 + Vite :5173；经 scripts/run-e2e.mjs 剥离代理变量，回环服务不走本机代理）
 npm run test -w @anchordesk/api -- src/rag/chunk.test.ts                    # 单个单元测试
 npm run db:test:reset && npm run test:integration -w @anchordesk/api -- src/routes/questions.integration.test.ts  # 单个集成测试
 ```
