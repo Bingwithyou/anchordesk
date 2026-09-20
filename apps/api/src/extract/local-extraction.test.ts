@@ -22,17 +22,17 @@ describe('内置本地提取', () => {
         filename: '笔记.TXT',
         data: Buffer.from(content, 'utf8'),
       }),
-    ).toBe(content);
+    ).toEqual({ text: content });
   });
 
   it('docx 用 mammoth 提取段落文本', async () => {
-    const text = await provider.extract({
+    const result = await provider.extract({
       filename: '样例.docx',
       data: readFileSync(sampleDocxPath),
     });
 
-    expect(text).toContain('这是用于测试的 Word 文档内容。');
-    expect(text).toContain('AnchorDesk 文档解析测试');
+    expect(result.text).toContain('这是用于测试的 Word 文档内容。');
+    expect(result.text).toContain('AnchorDesk 文档解析测试');
   });
 
   it('损坏的 docx 报 unparseable_document', async () => {

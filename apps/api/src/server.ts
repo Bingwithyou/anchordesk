@@ -7,6 +7,8 @@ import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
 import type { AppConfig } from './config.js';
 import { LocalExtractionProvider } from './extract/local-extraction.js';
+import { MinerUExtractionProvider } from './extract/mineru-extraction.js';
+import { RoutedExtractionProvider } from './extract/routed-extraction.js';
 import { DeepSeekAnswerProvider } from './providers/deepseek.js';
 import { OllamaEmbeddingProvider } from './providers/ollama.js';
 import type { Providers } from './providers/types.js';
@@ -27,7 +29,16 @@ export function createProviders(config: AppConfig): Providers {
       promptVersion: config.promptVersion,
       timeoutMs: config.deepseekTimeoutMs,
     }),
-    extractionProvider: new LocalExtractionProvider(),
+    extractionProvider: new RoutedExtractionProvider({
+      local: new LocalExtractionProvider(),
+      pdf:
+        config.mineruApiUrl === null
+          ? null
+          : new MinerUExtractionProvider({
+              baseUrl: config.mineruApiUrl,
+              timeoutMs: config.mineruTimeoutMs,
+            }),
+    }),
   };
 }
 

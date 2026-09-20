@@ -44,7 +44,7 @@ npm run eval:retrieval         # 真实 Ollama 向量 + fixtures 检索评测（
 npm run eval:generation        # 真实 Ollama + DeepSeek 生成评测（付费，可能产生 API 费用）
 ```
 
-配置来自根目录 `.env`（已 gitignore，模板见 `.env.example`）。所有变量必填（`DEEPSEEK_API_KEY` 也不能为空），由 `apps/api/src/config.ts` 用 zod 严格校验，启动时缺失即报错。跑真实问答需要本机 Ollama 已拉取 `bge-m3`。
+配置来自根目录 `.env`（已 gitignore，模板见 `.env.example`）。除 `MINERU_API_URL`/`MINERU_TIMEOUT_MS`（可选，留空 = 禁用 PDF 解析）外所有变量必填（`DEEPSEEK_API_KEY` 也不能为空），由 `apps/api/src/config.ts` 用 zod 严格校验，启动时缺失即报错。跑真实问答需要本机 Ollama 已拉取 `bge-m3`。
 
 ## 本地端口与安全边界
 
@@ -55,6 +55,7 @@ npm run eval:generation        # 真实 Ollama + DeepSeek 生成评测（付费�
 | 开发 PostgreSQL | `127.0.0.1:5434` |
 | 测试 PostgreSQL | `127.0.0.1:5433` |
 | Ollama | `127.0.0.1:11434` |
+| MinerU mineru-api（可选） | `127.0.0.1:8000` |
 
 所有服务只监听回环地址，不支持局域网或公网访问；不部署任何公网服务。`DEEPSEEK_API_KEY` 只存在于本机 `.env`，不要提交 `.env`。`docs/` 是 GitHub Pages 静态项目介绍页，不运行真实 RAG。
 
@@ -76,7 +77,7 @@ npm run eval:generation        # 真实 Ollama + DeepSeek 生成评测（付费�
 
 **审计与审核闭环**：每次提问在单事务内写入不可变快照 `question_logs` + `question_log_hits`（含全部候选、距离、是否过门槛、是否被引用），删除/编辑文档不影响历史日志。拒答自动在 `review_queue` 生成 open 条目；`not_helpful` 反馈同样入队（与 feedback 写入同事务），由「待处理」页备注并解决。helpful 只写 feedback 不入队。
 
-**Provider 抽象**：`src/providers/types.ts` 定义 `EmbeddingProvider`（Ollama bge-m3，回环地址）与 `AnswerProvider`（DeepSeek，JSON 契约）接口；真实实现与测试 Fake 都实现该接口，通过 `buildApp` 注入，业务代码不直接依赖具体厂商。`AnswerProvider` 只返回原始文本，JSON 解析与引用校验全部由 `answer-contract.ts` 负责。
+**Provider 抽象**：`src/providers/types.ts` 定义 `EmbeddingProvider`（Ollama bge-m3，回环地址）、`AnswerProvider`（DeepSeek，JSON 契约）与 `DocumentExtractionProvider`（返回 `{text, pageCount?}`）接口；真实实现与测试 Fake 都实现该接口，通过 `buildApp` 注入，业务代码不直接依赖具体厂商。`AnswerProvider` 只返回原始文本，JSON 解析与引用校验全部由 `answer-contract.ts` 负责。**文档提取**：`src/extract/` 的 `RoutedExtractionProvider` 按扩展名路由——pdf → `MinerUExtractionProvider`（HTTP 调本机 mineru-api 的 `/file_parse`，未配置时 400 明确拒绝），md/txt/docx → `LocalExtractionProvider`（mammoth 提取 docx）；提取结果经 `quality-gate.ts`（空文本/乱码率/字符密度）校验后进入既有管线。
 
 **数据库**：迁移文件在 `db/migrations/NNN_name.sql`，带 sha256 校验和与 advisory lock，已应用的迁移禁止修改（否则报错）。`reset-test-db.ts` 是 drop schema public + 重新迁移。测试库安全约束由 `db/database-config.ts` 的 `assertSafeTestDatabaseUrls` 强制：测试库名必须以 `_test` 结尾、使用回环地址、不得与开发库相同。
 

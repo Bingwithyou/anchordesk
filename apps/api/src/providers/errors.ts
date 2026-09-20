@@ -1,4 +1,4 @@
-export type ProviderName = 'ollama' | 'deepseek';
+export type ProviderName = 'ollama' | 'deepseek' | 'mineru';
 export type ProviderErrorKind =
   | 'connection'
   | 'timeout'
@@ -14,6 +14,7 @@ export interface ProviderErrorOptions {
 const providerLabels: Record<ProviderName, string> = {
   ollama: 'Ollama',
   deepseek: 'DeepSeek',
+  mineru: 'MinerU',
 };
 
 export class ProviderError extends Error {

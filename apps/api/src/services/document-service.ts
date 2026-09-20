@@ -116,7 +116,7 @@ const documentErrorDetails: Record<
     statusCode: 400,
   },
   pdf_extraction_disabled: {
-    message: 'PDF 解析尚未启用',
+    message: 'PDF 解析尚未启用：请配置 MINERU_API_URL 并启动 mineru-api',
     statusCode: 400,
   },
   file_too_large: { message: '文件超过 10 MB 上限', statusCode: 413 },
@@ -368,11 +368,15 @@ export function createDocumentService({
         { filename: input.filename, data: input.data } satisfies ExtractedFile,
         signal,
       );
-      if (!assessExtractionQuality(extracted).ok) {
+      if (!assessExtractionQuality(extracted.text, extracted.pageCount).ok) {
         throw new DocumentServiceError('unparseable_document');
       }
       return persistNewDocument(
-        parseCreateDocumentInput({ title, content: extracted, sourceType }),
+        parseCreateDocumentInput({
+          title,
+          content: extracted.text,
+          sourceType,
+        }),
         signal,
       );
     },

@@ -55,9 +55,31 @@ describe('应用配置', () => {
       deepseekBaseUrl: 'https://api.deepseek.com',
       deepseekModel: 'deepseek-v4-pro',
       deepseekTimeoutMs: 60_000,
+      mineruApiUrl: null,
+      mineruTimeoutMs: 300_000,
       ragTopK: 5,
       ragMaxDistance: 0.55,
       promptVersion: 'v1',
+    });
+  });
+
+  it('MinerU 配置可选：留空禁用，提供回环地址时启用并可自定义超时', () => {
+    expect(
+      parseAppConfig({
+        ...validEnvironment,
+        MINERU_API_URL: '',
+        MINERU_TIMEOUT_MS: '120000',
+      }),
+    ).toMatchObject({ mineruApiUrl: null, mineruTimeoutMs: 120_000 });
+
+    expect(
+      parseAppConfig({
+        ...validEnvironment,
+        MINERU_API_URL: 'http://127.0.0.1:8000',
+      }),
+    ).toMatchObject({
+      mineruApiUrl: 'http://127.0.0.1:8000',
+      mineruTimeoutMs: 300_000,
     });
   });
 
@@ -75,6 +97,9 @@ describe('应用配置', () => {
     ['TEST_DATABASE_URL', 'https://127.0.0.1/anchordesk_test'],
     ['OLLAMA_BASE_URL', 'file:///tmp/ollama'],
     ['OLLAMA_BASE_URL', 'http://192.168.1.5:11434'],
+    ['MINERU_API_URL', 'http://192.168.1.5:8000'],
+    ['MINERU_API_URL', '不是 URL'],
+    ['MINERU_TIMEOUT_MS', '-1'],
     ['DEEPSEEK_BASE_URL', 'javascript:alert(1)'],
     ['OLLAMA_TIMEOUT_MS', 'NaN'],
     ['DEEPSEEK_TIMEOUT_MS', '-1'],

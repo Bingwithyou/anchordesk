@@ -144,3 +144,26 @@ test('上传 docx 文件由服务端解析入库', async ({ page }) => {
   await expect(documentItem).toBeVisible();
   await expect(documentItem).toContainText('docx');
 });
+
+test('上传 pdf 文件走 PDF 上传流程', async ({ page }) => {
+  // 1. 进入文档页并新建文档。
+  await page.goto('/');
+  await page.getByRole('button', { name: '知识文档' }).click();
+  await page.getByRole('button', { name: '新建文档' }).first().click();
+
+  // 2. 选择 pdf 文件：提示保存时由服务端解析，标题取文件名主体。
+  await page
+    .locator('#document-file')
+    .setInputFiles('apps/api/src/test/data/sample-pdf.pdf');
+  await expect(
+    page.getByText(/已选择 sample-pdf\.pdf，保存时将上传并由服务端解析（pdf）/),
+  ).toBeVisible();
+  await expect(page.getByLabel('标题')).toHaveValue('sample-pdf');
+
+  // 3. 保存上传成功后进入编辑态，列表来源类型为 pdf。
+  await page.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(page.getByText('文档已创建')).toBeVisible();
+  const documentItem = page.getByRole('button', { name: /sample-pdf/ });
+  await expect(documentItem).toBeVisible();
+  await expect(documentItem).toContainText('pdf');
+});

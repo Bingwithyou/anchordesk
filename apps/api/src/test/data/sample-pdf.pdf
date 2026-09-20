@@ -1,0 +1,6 @@
+%PDF-1.4
+% 假 PDF fixture：仅用于 E2E 上传流程，Fake 提取器不解析字节内容。
+1 0 obj
+<< /Type /Catalog >>
+endobj
+%%EOF

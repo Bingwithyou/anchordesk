@@ -17,6 +17,9 @@ export interface AppConfig {
   deepseekBaseUrl: string;
   deepseekModel: string;
   deepseekTimeoutMs: number;
+  /** MinerU 解析服务地址；null 表示未启用（pdf 上传将被拒绝） */
+  mineruApiUrl: string | null;
+  mineruTimeoutMs: number;
   ragTopK: number;
   ragMaxDistance: number;
   promptVersion: string;
@@ -107,6 +110,23 @@ const webOrigin = localHttpUrl
   }, '必须是不含凭据、路径、查询或片段的 Origin')
   .transform((value) => parseUrl(value)?.origin ?? value);
 const numberFromText = requiredText.transform((value) => Number(value));
+
+/** MinerU 是可选能力：留空表示未启用，其余变量维持必填策略 */
+const mineruApiUrl = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value) =>
+    value === undefined || value === '' ? null : value,
+  )
+  .refine(
+    (value) =>
+      value === null ||
+      (isLoopbackUrl(value) && usesProtocol(value, httpProtocols)),
+    '必须是空值或回环 http(s) URL',
+  );
+
+export const DEFAULT_MINERU_TIMEOUT_MS = 300_000;
 const positiveIntegerNumber = z
   .number({ error: '必须是有效数字' })
   .int('必须是整数')
@@ -127,6 +147,8 @@ const environmentSchema = z.object({
   DEEPSEEK_BASE_URL: httpUrl,
   DEEPSEEK_MODEL: requiredText,
   DEEPSEEK_TIMEOUT_MS: positiveInteger,
+  MINERU_API_URL: mineruApiUrl,
+  MINERU_TIMEOUT_MS: positiveInteger.optional(),
   RAG_TOP_K: numberFromText.pipe(
     positiveIntegerNumber.max(20, '不能大于 20'),
   ),
@@ -214,6 +236,9 @@ export function parseAppConfig(environment: AppEnvironment): AppConfig {
     deepseekBaseUrl: parsed.data.DEEPSEEK_BASE_URL,
     deepseekModel: parsed.data.DEEPSEEK_MODEL,
     deepseekTimeoutMs: parsed.data.DEEPSEEK_TIMEOUT_MS,
+    mineruApiUrl: parsed.data.MINERU_API_URL ?? null,
+    mineruTimeoutMs:
+      parsed.data.MINERU_TIMEOUT_MS ?? DEFAULT_MINERU_TIMEOUT_MS,
     ragTopK: parsed.data.RAG_TOP_K,
     ragMaxDistance: parsed.data.RAG_MAX_DISTANCE,
     promptVersion: parsed.data.PROMPT_VERSION,

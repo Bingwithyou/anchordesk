@@ -5,6 +5,7 @@ import type {
   DocumentExtractionProvider,
   EmbeddingProvider,
   ExtractedFile,
+  ExtractionResult,
   RetrievedChunk,
 } from '../providers/types.js';
 
@@ -87,13 +88,24 @@ const defaultExtraction: FakeExtractionResolver = () =>
 
 export class FakeExtractionProvider implements DocumentExtractionProvider {
   readonly #resolve: FakeExtractionResolver;
+  readonly #pageCount: number | undefined;
 
-  constructor(resolve: FakeExtractionResolver = defaultExtraction) {
+  constructor(
+    resolve: FakeExtractionResolver = defaultExtraction,
+    pageCount?: number,
+  ) {
     this.#resolve = resolve;
+    this.#pageCount = pageCount;
   }
 
-  async extract(file: ExtractedFile, signal?: AbortSignal): Promise<string> {
+  async extract(
+    file: ExtractedFile,
+    signal?: AbortSignal,
+  ): Promise<ExtractionResult> {
     signal?.throwIfAborted();
-    return this.#resolve(file);
+    return {
+      text: this.#resolve(file),
+      ...(this.#pageCount === undefined ? {} : { pageCount: this.#pageCount }),
+    };
   }
 }

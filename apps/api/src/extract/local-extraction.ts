@@ -4,6 +4,7 @@ import { DocumentServiceError } from '../services/document-service.js';
 import type {
   DocumentExtractionProvider,
   ExtractedFile,
+  ExtractionResult,
 } from '../providers/types.js';
 
 /**
@@ -11,18 +12,21 @@ import type {
  * 无网络调用、无 Python 依赖；非 UTF-8 内容解码产生的 U+FFFD 由质量门控兜底。
  */
 export class LocalExtractionProvider implements DocumentExtractionProvider {
-  async extract(file: ExtractedFile, signal?: AbortSignal): Promise<string> {
+  async extract(
+    file: ExtractedFile,
+    signal?: AbortSignal,
+  ): Promise<ExtractionResult> {
     signal?.throwIfAborted();
     const extension = fileExtension(file.filename);
 
     if (extension === 'md' || extension === 'txt') {
-      return file.data.toString('utf8');
+      return { text: file.data.toString('utf8') };
     }
 
     if (extension === 'docx') {
       try {
         const result = await mammoth.extractRawText({ buffer: file.data });
-        return result.value;
+        return { text: result.value };
       } catch (error) {
         if (signal?.aborted === true) {
           throw error;

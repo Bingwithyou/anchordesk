@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { createServer } from 'node:http';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -6,6 +7,8 @@ import { loadDatabaseUrls } from '../db/database-config.js';
 import { createDatabasePool } from '../db/pool.js';
 import { resetTestDatabase } from '../db/reset-test-db.js';
 import { LocalExtractionProvider } from '../extract/local-extraction.js';
+import { MinerUExtractionProvider } from '../extract/mineru-extraction.js';
+import { RoutedExtractionProvider } from '../extract/routed-extraction.js';
 import { ProviderError } from '../providers/errors.js';
 import type { EmbeddingProvider } from '../providers/types.js';
 import {
@@ -873,7 +876,7 @@ describe('文档上传 API', () => {
     expect(response.statusCode).toBe(400);
     expect(response.json()).toEqual({
       code: 'pdf_extraction_disabled',
-      message: 'PDF 解析尚未启用',
+      message: 'PDF 解析尚未启用：请配置 MINERU_API_URL 并启动 mineru-api',
     });
   });
 
@@ -990,6 +993,179 @@ describe('文档上传 API', () => {
     expect(response.json()).toEqual({
       code: 'file_too_large',
       message: '文件超过 10 MB 上限',
+    });
+  });
+});
+
+describe('PDF 上传与 MinerU 路由', () => {
+  const boundary = '----anchordesk-pdf-test';
+  const multipartHeaders = {
+    'content-type': `multipart/form-data; boundary=${boundary}`,
+  };
+
+  function pdfUploadRequest(data: Buffer) {
+    const payload = Buffer.concat([
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="论文.pdf"\r\nContent-Type: application/octet-stream\r\n\r\n`,
+      ),
+      data,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    return {
+      method: 'POST',
+      url: '/api/documents/upload',
+      headers: multipartHeaders,
+      payload,
+    } as const;
+  }
+
+  async function startMockMineru(
+    handler: (response: {
+      writeHead: (status: number, headers: Record<string, string>) => void;
+      end: (body: string) => void;
+    }) => void,
+  ): Promise<{ url: string; close: () => Promise<void> }> {
+    const server = createServer((_request, response) => {
+      handler(response);
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    if (address === null || typeof address === 'string') {
+      throw new Error('mock MinerU 监听失败');
+    }
+    return {
+      url: `http://127.0.0.1:${address.port}`,
+      close: () =>
+        new Promise((resolve, reject) => {
+          server.close((error) =>
+            error === undefined ? resolve() : reject(error),
+          );
+        }),
+    };
+  }
+
+  function mineruPayload(mdContent: string, extra: Record<string, unknown> = {}) {
+    return {
+      status: 'completed',
+      backend: 'pipeline',
+      version: '3.4.4',
+      results: { 论文: { md_content: mdContent, ...extra } },
+    };
+  }
+
+  it('pdf 经 MinerU 解析后按 Markdown 入库', async () => {
+    const mock = await startMockMineru((response) => {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(
+        JSON.stringify(mineruPayload('## 论文标题\n\n这是 PDF 提取的正文内容。')),
+      );
+    });
+    const app = createTestApp({
+      extractionProvider: new RoutedExtractionProvider({
+        local: new LocalExtractionProvider(),
+        pdf: new MinerUExtractionProvider({
+          baseUrl: mock.url,
+          timeoutMs: 5_000,
+        }),
+      }),
+    });
+    apps.push(app);
+    try {
+      const created = await app.inject(
+        pdfUploadRequest(Buffer.from('%PDF-1.4 假文件')),
+      );
+      expect(created.statusCode).toBe(201);
+      const documentId = created.json<{ id: string }>().id;
+      const detail = await app.inject({
+        method: 'GET',
+        url: `/api/documents/${documentId}`,
+      });
+
+      expect(detail.json()).toMatchObject({
+        title: '论文',
+        content: '## 论文标题\n\n这是 PDF 提取的正文内容。',
+        sourceType: 'pdf',
+      });
+    } finally {
+      await mock.close();
+    }
+  });
+
+  it('MinerU 服务未启动时返回 502 且不创建文档', async () => {
+    const mock = await startMockMineru(() => undefined);
+    const url = mock.url;
+    await mock.close();
+    const app = createTestApp({
+      extractionProvider: new RoutedExtractionProvider({
+        local: new LocalExtractionProvider(),
+        pdf: new MinerUExtractionProvider({ baseUrl: url, timeoutMs: 5_000 }),
+      }),
+    });
+    apps.push(app);
+    const before = await app.inject({ method: 'GET', url: '/api/documents' });
+
+    const response = await app.inject(
+      pdfUploadRequest(Buffer.from('%PDF-1.4 假文件')),
+    );
+    const after = await app.inject({ method: 'GET', url: '/api/documents' });
+
+    expect(response.statusCode).toBe(502);
+    expect(response.json()).toEqual({
+      code: 'provider_error',
+      message: 'MinerU 上游服务响应异常',
+    });
+    expect(after.json()).toEqual(before.json());
+  });
+
+  it('页数元数据过低触发密度门控返回 400', async () => {
+    const mock = await startMockMineru((response) => {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(
+        JSON.stringify(mineruPayload('只有一句话', { pages: 100 })),
+      );
+    });
+    const app = createTestApp({
+      extractionProvider: new RoutedExtractionProvider({
+        local: new LocalExtractionProvider(),
+        pdf: new MinerUExtractionProvider({
+          baseUrl: mock.url,
+          timeoutMs: 5_000,
+        }),
+      }),
+    });
+    apps.push(app);
+    try {
+      const response = await app.inject(
+        pdfUploadRequest(Buffer.from('%PDF-1.4 假文件')),
+      );
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json()).toEqual({
+        code: 'unparseable_document',
+        message: '文件内容无法解析，请确认文件未损坏且不是空扫描件',
+      });
+    } finally {
+      await mock.close();
+    }
+  });
+
+  it('未配置 MinerU 时 pdf 上传返回 400 明确提示', async () => {
+    const app = createTestApp({
+      extractionProvider: new RoutedExtractionProvider({
+        local: new LocalExtractionProvider(),
+        pdf: null,
+      }),
+    });
+    apps.push(app);
+
+    const response = await app.inject(
+      pdfUploadRequest(Buffer.from('%PDF-1.4 假文件')),
+    );
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      code: 'pdf_extraction_disabled',
+      message: 'PDF 解析尚未启用：请配置 MINERU_API_URL 并启动 mineru-api',
     });
   });
 });

@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { AppConfig } from './config.js';
+import { RoutedExtractionProvider } from './extract/routed-extraction.js';
 import { DeepSeekAnswerProvider } from './providers/deepseek.js';
-import { LocalExtractionProvider } from './extract/local-extraction.js';
 import { OllamaEmbeddingProvider } from './providers/ollama.js';
 import type { Providers } from './providers/types.js';
 import { createProviders, startServer } from './server.js';
@@ -23,7 +23,7 @@ const providers = {
     generate: async () => '',
   },
   extractionProvider: {
-    extract: async () => '未使用',
+    extract: async () => ({ text: '未使用' }),
   },
 } satisfies Providers;
 
@@ -40,6 +40,8 @@ const config = {
   deepseekBaseUrl: 'https://api.deepseek.com',
   deepseekModel: 'deepseek-v4-pro',
   deepseekTimeoutMs: 60_000,
+  mineruApiUrl: null,
+  mineruTimeoutMs: 300_000,
   ragTopK: 5,
   ragMaxDistance: 0.55,
   promptVersion: 'v1',
@@ -60,7 +62,7 @@ describe('API 真实启动边界', () => {
       DeepSeekAnswerProvider,
     );
     expect(configuredProviders.extractionProvider).toBeInstanceOf(
-      LocalExtractionProvider,
+      RoutedExtractionProvider,
     );
   });
 

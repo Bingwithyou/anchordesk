@@ -17,6 +17,8 @@ const config = {
   deepseekBaseUrl: 'https://api.deepseek.com',
   deepseekModel: 'deepseek-v4-pro',
   deepseekTimeoutMs: 60_000,
+  mineruApiUrl: null,
+  mineruTimeoutMs: 300_000,
   ragTopK: 5,
   ragMaxDistance: 0.55,
   promptVersion: 'v1',
