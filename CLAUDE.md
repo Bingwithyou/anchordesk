@@ -57,7 +57,7 @@ npm run eval:generation        # 真实 Ollama + DeepSeek 生成评测（付费�
 | Ollama | `127.0.0.1:11434` |
 | MinerU mineru-api（可选） | `127.0.0.1:8000` |
 
-所有服务只监听回环地址，不支持局域网或公网访问；不部署任何公网服务。`DEEPSEEK_API_KEY` 只存在于本机 `.env`，不要提交 `.env`。`docs/` 是 GitHub Pages 静态项目介绍页，不运行真实 RAG。
+所有服务只监听回环地址，不支持局域网或公网访问；不部署任何公网服务。`DEEPSEEK_API_KEY` 只存在于本机 `.env`，不要提交 `.env`。`docs/` 是 GitHub Pages 静态项目介绍页，不运行真实 RAG；`docs/demo/` 提供浏览器端检索演示（本地推理轻量模型 bge-small-zh-v1.5，真实计算检索与拒答判定，生成不在内；构建脚本 `scripts/build-pages-demo.mjs`，冒烟脚本 `scripts/smoke-demo.mjs`）。
 
 ## 产品合同（改代码时必须保持的行为）
 

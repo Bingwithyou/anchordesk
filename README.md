@@ -241,7 +241,7 @@ A：所有测试与评测只使用 `*_test` 数据库并先重置，避免污染
 
 ## 十二、GitHub Pages 介绍页
 
-`docs/` 目录是一份**纯静态项目介绍页**（含四张页面截图），已通过本地预览检查，**尚未发布**。发布步骤：
+`docs/` 目录是一份**纯静态项目介绍页**（含四张页面截图与一个**浏览器端检索演示**），已通过本地预览检查，**尚未发布**。发布步骤：
 
 1. 创建 GitHub 仓库并配置 remote（`git remote add origin <仓库地址>`）。
 2. 推送默认分支。
@@ -252,6 +252,19 @@ A：所有测试与评测只使用 `*_test` 数据库并先重置，避免污染
 > 这是项目介绍页。真实 RAG 功能需要按 README 在本机运行。
 
 页面不包含任何 API 调用、表单提交或密钥内容。
+
+**浏览器端检索演示**（`docs/demo/`，随 Pages 一起发布）：在浏览器本地加载轻量模型
+`bge-small-zh-v1.5`（约 25 MB，WebAssembly 推理，全部资源随仓库自托管、无 CDN 依赖），
+对 fixtures 合成语料执行真实向量检索——任意问题现场计算嵌入、余弦距离与门槛判定，
+距离超门槛展示确定性拒答；预置了 12 个评测用例按钮。演示模型、门槛与真实系统
+（Ollama `bge-m3` 1024 维）的差异在页面内显著标注，回答生成不在演示范围内。
+
+相关命令：
+
+```powershell
+npm run build:demo    # 重新生成演示向量（含门槛校准与命中校验，需要模型文件已在 docs/demo/models/）
+npm run test:demo     # 本地静态服务器 + headless Chromium 冒烟验证演示页
+```
 
 ## 十三、项目结构
 
@@ -266,7 +279,7 @@ AnchorDesk/
 │   ├── knowledge/            # 合成评测知识文档（退款/配送/客服）
 │   └── evaluation/           # 12 个固定评测用例
 ├── e2e/                      # Playwright 端到端测试
-├── docs/                     # GitHub Pages 静态介绍页
+├── docs/                     # GitHub Pages 静态介绍页 + demo/ 浏览器端检索演示（自托管模型与 wasm）
 ├── playwright.config.ts
 ├── docker-compose.yml
 └── .env.example              # 环境变量样例（复制为 .env）
@@ -277,5 +290,5 @@ AnchorDesk/
 - 不支持登录、用户、角色或多租户。
 - 不支持多轮对话、会话历史、网页导入或流式回答。（PDF 导入已支持，需可选部署 MinerU）
 - 不部署 Fastify、PostgreSQL、Ollama、MinerU 或 DeepSeek 到公网。
-- 不在 Pages 中模拟或伪造可交互的 RAG。
+- 不在 Pages 中伪造生成回答：`docs/demo/` 交互演示仅做真实客户端检索与拒答判定（浏览器本地推理轻量演示模型），并显著标注演示模型、门槛与真实系统的差异。
 - 不录入或展示客户隐私、公司机密、个人敏感信息或真实密钥。

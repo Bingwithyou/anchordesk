@@ -20,7 +20,9 @@
       <p class="notice" role="note">
         <strong>这是项目介绍页。</strong>真实 RAG 功能需要按
         <a href="https://github.com/Bingwithyou/anchordesk#readme">README</a>
-        在本机运行，本页面不包含任何在线服务。
+        在本机运行，本页面不包含任何在线服务。可前往
+        <a href="./demo/">浏览器端检索演示</a>
+        现场体验真实计算的向量检索与确定性拒答（轻量演示模型，差异已标注）。
       </p>
     </header>
 
@@ -36,6 +38,18 @@
         <p>
           系统仅供开发者本人本机运行，所有服务只监听回环地址，不支持局域网或公网访问，
           只允许录入合成数据或公开数据。
+        </p>
+      </section>
+
+      <section>
+        <h2>交互演示</h2>
+        <p>
+          <a href="./demo/"><strong>打开浏览器端检索演示 →</strong></a>
+          演示页在浏览器本地加载轻量模型 <code>bge-small-zh-v1.5</code>（约 25 MB，
+          WebAssembly 推理），对合成语料执行真实向量检索：输入任意问题，现场计算嵌入、
+          余弦距离与门槛判定，距离超门槛时展示确定性拒答。演示模型、门槛与真实系统
+          （Ollama <code>bge-m3</code> 1024 维）的差异在页面内显著标注，
+          回答生成不在演示范围内。
         </p>
       </section>
 

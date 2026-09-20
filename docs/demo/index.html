@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AnchorDesk 检索演示（浏览器端推理）</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <style>
+      .demo-note {
+        border-left: 4px solid #d97706;
+        background: #fffbeb;
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+        line-height: 1.6;
+      }
+      .demo-query {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+      .demo-query input {
+        flex: 1;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #d6d3d1;
+        border-radius: 6px;
+        font-size: 0.95rem;
+      }
+      .demo-query button {
+        padding: 0.5rem 1.25rem;
+        border: 0;
+        border-radius: 6px;
+        background: #1d4ed8;
+        color: #fff;
+        font-size: 0.95rem;
+        cursor: pointer;
+      }
+      .demo-chips {
+        margin-top: 0.75rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .demo-chip {
+        border: 1px solid #d6d3d1;
+        background: #fff;
+        border-radius: 999px;
+        padding: 0.3rem 0.8rem;
+        font-size: 0.8rem;
+        cursor: pointer;
+      }
+      .demo-chip:hover {
+        border-color: #1d4ed8;
+        color: #1d4ed8;
+      }
+      .demo-status {
+        margin-top: 1rem;
+        color: #78716c;
+        font-size: 0.9rem;
+      }
+      .demo-refusal {
+        margin-top: 1rem;
+        border: 1px solid #fecaca;
+        background: #fef2f2;
+        border-radius: 6px;
+        padding: 1rem;
+        color: #b91c1c;
+      }
+      .demo-refusal .reason {
+        font-size: 0.8rem;
+        color: #7f1d1d;
+        margin-top: 0.5rem;
+      }
+      .demo-evidence {
+        margin-top: 1rem;
+        border: 1px solid #d6d3d1;
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+        background: #fff;
+      }
+      .demo-evidence + .demo-evidence {
+        margin-top: 0.5rem;
+      }
+      .demo-evidence header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        font-size: 0.85rem;
+      }
+      .demo-evidence .title {
+        font-weight: 600;
+      }
+      .demo-evidence .distance {
+        color: #78716c;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .demo-evidence .passed {
+        color: #15803d;
+      }
+      .demo-evidence .blocked {
+        color: #b91c1c;
+      }
+      .demo-evidence p {
+        margin: 0.5rem 0 0;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        color: #44403c;
+      }
+      .demo-back {
+        margin-top: 2rem;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>AnchorDesk 检索演示</h1>
+        <p class="subtitle">
+          在浏览器里跑真实的向量检索：输入任意问题，现场计算嵌入、余弦距离与门槛判定。
+        </p>
+      </header>
+
+      <section>
+        <div class="demo-note">
+          <strong>演示边界（请如实看待）：</strong>本页在浏览器本地运行轻量模型
+          <code>bge-small-zh-v1.5</code>（512 维，约 25 MB，WebAssembly 推理），
+          真实系统使用 Ollama <code>bge-m3</code>（1024 维）；本页距离与门槛
+          （<code id="demo-threshold">—</code>）由演示模型在校准集上标定，与真实系统
+          的 <code>RAG_MAX_DISTANCE=0.45</code> 不可直接比较。检索、距离、拒答判定
+          均为真实计算；<strong>回答生成不在此演示内</strong>（DeepSeek Key 不能进入
+          静态页面），需按 README 在本机运行完整系统。语料为 fixtures 中的合成文档。
+        </div>
+
+        <div class="demo-query">
+          <input
+            id="demo-input"
+            type="text"
+            placeholder="输入任意中文问题，例如：退款申请期限是多少？"
+            aria-label="演示问题"
+          />
+          <button id="demo-submit" type="button" disabled>检索</button>
+        </div>
+        <div class="demo-chips" id="demo-chips"></div>
+        <p class="demo-status" id="demo-status">正在加载演示模型（约 25 MB，仅首次需要几秒）…</p>
+        <div id="demo-results"></div>
+        <p class="demo-back"><a href="../">← 返回 AnchorDesk 项目介绍</a></p>
+      </section>
+    </div>
+
+    <script type="module" src="./demo.js"></script>
+  </body>
+</html>
