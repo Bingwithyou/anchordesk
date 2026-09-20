@@ -13,156 +13,269 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div class="page">
-    <header class="hero">
-      <h1>AnchorDesk 知识库问答</h1>
-      <p class="subtitle">本地中文 RAG 系统：文档入库、向量检索、带引用回答、反馈与审核闭环</p>
-      <p class="notice" role="note">
+  <header class="nav">
+    <div class="container nav-inner">
+      <span class="brand"><span class="brand-mark"></span>AnchorDesk</span>
+      <nav class="nav-links" aria-label="页内导航">
+        <a href="#features">功能</a>
+        <a href="#architecture">架构</a>
+        <a href="#quality">质量</a>
+        <a href="./demo/">演示</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <span class="badge"><span class="badge-dot"></span>本地优先 · Local-first RAG</span>
+      <h1>AnchorDesk <span class="gradient">知识库问答</span></h1>
+      <p class="subtitle">
+        本地中文 RAG 系统：文档入库、向量检索、带引用回答、反馈与审核闭环。
+        检索不到依据时，绝不编造答案。
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="./demo/">
+          打开交互演示
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/Bingwithyou/anchordesk#readme">
+          GitHub README
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
+        </a>
+      </div>
+      <div class="hero-meta" aria-hidden="true">
+        <span class="chip">Fastify 5</span>
+        <span class="chip">PostgreSQL 16 + pgvector</span>
+        <span class="chip">Ollama bge-m3</span>
+        <span class="chip">DeepSeek</span>
+        <span class="chip">React 19</span>
+      </div>
+      <p class="notice" role="note" style="margin-top: 28px">
         <strong>这是项目介绍页。</strong>真实 RAG 功能需要按
         <a href="https://github.com/Bingwithyou/anchordesk#readme">README</a>
-        在本机运行，本页面不包含任何在线服务。可前往
-        <a href="./demo/">浏览器端检索演示</a>
-        现场体验真实计算的向量检索与确定性拒答（轻量演示模型，差异已标注）。
+        在本机运行，本页面不包含任何在线服务。浏览器端检索演示使用轻量模型，
+        与真实系统（Ollama <code>bge-m3</code> 1024 维）的差异已在演示页内标注。
       </p>
-    </header>
+    </section>
 
-    <main>
-      <section>
-        <h2>项目简介</h2>
+    <section>
+      <div class="section-head">
+        <span class="eyebrow">Overview</span>
+        <h2>一条完整的本地化 RAG 链路</h2>
         <p>
-          AnchorDesk 演示一条完整的本地化 RAG 链路：中文文档分块与向量化 →
-          pgvector 相似度检索与距离门槛过滤 → DeepSeek 结构化生成与引用合同校验 →
-          原子化日志与证据快照。系统不会伪造回答：检索不到依据或模型没有足够依据时返回确定性拒答，
-          并自动进入“待处理”审核队列。
+          中文文档分块与向量化 → pgvector 相似度检索与距离门槛过滤 →
+          DeepSeek 结构化生成与引用合同校验 → 原子化日志与证据快照。
+          系统不会伪造回答：检索不到依据或模型没有足够依据时返回确定性拒答，
+          并自动进入「待处理」审核队列。
         </p>
-        <p>
-          系统仅供开发者本人本机运行，所有服务只监听回环地址，不支持局域网或公网访问，
-          只允许录入合成数据或公开数据。
-        </p>
-      </section>
+      </div>
+      <p style="margin: 0">
+        系统仅供开发者本人本机运行，所有服务只监听回环地址，不支持局域网或公网访问，
+        只允许录入合成数据或公开数据。
+      </p>
+    </section>
 
-      <section>
-        <h2>交互演示</h2>
-        <p>
-          <a href="./demo/"><strong>打开浏览器端检索演示 →</strong></a>
-          演示页在浏览器本地加载轻量模型 <code>bge-small-zh-v1.5</code>（约 25 MB，
-          WebAssembly 推理），对合成语料执行真实向量检索：输入任意问题，现场计算嵌入、
-          余弦距离与门槛判定，距离超门槛时展示确定性拒答。演示模型、门槛与真实系统
-          （Ollama <code>bge-m3</code> 1024 维）的差异在页面内显著标注，
-          回答生成不在演示范围内。
-        </p>
-      </section>
+    <section>
+      <a class="demo-cta" href="./demo/">
+        <span class="demo-cta-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.5 0 4.7 1 6.3 2.6L21 8"/><path d="M21 3v5h-5"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/></svg>
+        </span>
+        <span class="demo-cta-body">
+          <h3>浏览器端检索演示</h3>
+          <p>
+            在浏览器本地加载轻量模型 <code>bge-small-zh-v1.5</code>（约 25 MB，
+            WebAssembly 推理），对合成语料执行真实向量检索：输入任意问题，
+            现场计算嵌入、余弦距离与门槛判定，距离超门槛时展示确定性拒答。
+            回答生成不在演示范围内。
+          </p>
+        </span>
+        <svg class="demo-cta-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </section>
 
-      <section>
+    <section id="features">
+      <div class="section-head">
+        <span class="eyebrow">Features</span>
         <h2>MVP 功能</h2>
-        <ul>
-          <li>中文文档管理：创建、列表、详情、连续编辑（乐观并发校验）与删除，自动分块与向量索引；支持 .md / .txt / .docx 文件上传与解析质量门控（.pdf 需可选部署 MinerU，含扫描件 OCR）。</li>
-          <li>单轮问答：中文问题 → 检索 → 生成；答案含行内引用，可点击定位证据卡片。</li>
-          <li>确定性拒答：知识库为空、距离超门槛、模型主动拒答、模型输出不合法，均返回固定拒答文案。</li>
-          <li>用户反馈：“有帮助 / 没有帮助”提交后锁定；“没有帮助”自动进入待处理队列。</li>
-          <li>待处理审核：拒答与“没帮助”两类项目、备注（1–1000 字）、标记已解决、已解决只读。</li>
-          <li>运行日志：最近 100 条摘要（不泄露完整正文）、详情与全部候选 hits 快照，审计快照不可变。</li>
-        </ul>
-      </section>
+      </div>
+      <div class="grid grid-2">
+        <div class="card">
+          <span class="card-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+          </span>
+          <h3>中文文档管理</h3>
+          <p>
+            创建、列表、详情、连续编辑（乐观并发校验）与删除，自动分块与向量索引；
+            支持 .md / .txt / .docx 文件上传与解析质量门控（.pdf 需可选部署 MinerU，含扫描件 OCR）。
+          </p>
+        </div>
+        <div class="card">
+          <span class="card-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.2 0-2.4-.2-3.4-.7L3 21l1.7-6.1A8.5 8.5 0 1 1 21 11.5z"/></svg>
+          </span>
+          <h3>单轮问答</h3>
+          <p>
+            中文问题 → 检索 → 生成；答案含行内引用，可点击定位到证据卡片
+            （文档标题、内容预览、余弦距离）。
+          </p>
+        </div>
+        <div class="card">
+          <span class="card-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          </span>
+          <h3>确定性拒答</h3>
+          <p>
+            知识库为空、距离超门槛、模型主动拒答、模型输出不合法，
+            均返回固定拒答文案并记录结构化原因，绝不编造。
+          </p>
+        </div>
+        <div class="card">
+          <span class="card-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v12"/><path d="M15 5.9 14 10h5.8a2 2 0 0 1 1.9 2.6l-2.3 8a2 2 0 0 1-1.9 1.4H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.8a2 2 0 0 0 1.8-1.1L12 2a3.1 3.1 0 0 1 3 3.9z"/></svg>
+          </span>
+          <h3>用户反馈</h3>
+          <p>
+            对普通回答提交「有帮助 / 没有帮助」，提交后按钮锁定；
+            「没有帮助」自动进入待处理队列。
+          </p>
+        </div>
+        <div class="card">
+          <span class="card-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8M13 12h8M13 18h8"/></svg>
+          </span>
+          <h3>待处理审核</h3>
+          <p>
+            拒答与「没帮助」两类项目、备注（1–1000 字）、标记已解决、已解决只读。
+          </p>
+        </div>
+        <div class="card">
+          <span class="card-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </span>
+          <h3>运行日志与审计快照</h3>
+          <p>
+            最近 100 条摘要（不泄露完整正文）、完整详情与全部候选 hits 快照；
+            删除或编辑文档不会破坏历史日志，审计记录不可变。
+          </p>
+        </div>
+      </div>
+    </section>
 
-      <section>
-        <h2>技术栈</h2>
-        <ul class="stack">
-          <li>Web：React 19、Vite 8、Tailwind CSS 4</li>
-          <li>API：Node.js、Fastify 5、TypeScript</li>
-          <li>数据库：PostgreSQL 16 + pgvector（1024 维余弦距离，HNSW 索引）</li>
-          <li>向量模型：Ollama bge-m3（本机）</li>
-          <li>生成模型：DeepSeek（结构化 JSON 输出）</li>
-          <li>测试：Vitest、Playwright、oxlint</li>
-        </ul>
-      </section>
-
-      <section>
-        <h2>系统架构</h2>
-        <pre class="diagram">
-React Web
+    <section id="architecture">
+      <div class="section-head">
+        <span class="eyebrow">Architecture</span>
+        <h2>技术栈与架构</h2>
+      </div>
+      <ul class="stack">
+        <li><span class="k">Web</span><span class="v">React 19 · Vite 8 · Tailwind CSS 4</span></li>
+        <li><span class="k">API</span><span class="v">Node.js · Fastify 5 · TypeScript</span></li>
+        <li><span class="k">数据库</span><span class="v">PostgreSQL 16 + pgvector（HNSW）</span></li>
+        <li><span class="k">向量模型</span><span class="v">Ollama bge-m3（1024 维，本机）</span></li>
+        <li><span class="k">生成模型</span><span class="v">DeepSeek（结构化 JSON 输出）</span></li>
+        <li><span class="k">文档解析</span><span class="v">mammoth · MinerU（可选，PDF/OCR）</span></li>
+        <li><span class="k">测试</span><span class="v">Vitest · Playwright · oxlint</span></li>
+        <li><span class="k">演示</span><span class="v">transformers.js（浏览器端推理）</span></li>
+      </ul>
+      <div style="margin-top: 16px; display: grid; gap: 12px">
+        <pre class="diagram">React Web
    │
    ▼
 Fastify API ─── Ollama bge-m3
    │
    ├────────── DeepSeek
    │
+   ├────────── MinerU（可选：PDF 解析）
+   │
    ▼
 PostgreSQL + pgvector</pre>
-        <p>
-          Web 只与本机 API 通信；API 负责文档服务、问答编排、反馈与审核；Ollama 仅在本机提供
-          <code>bge-m3</code> 向量嵌入；DeepSeek 仅由 API 调用，会接收到当前问题和检索到的证据片段。
-        </p>
-      </section>
-
-      <section>
-        <h2>单轮问答流程</h2>
-        <pre class="diagram">
-中文问题
+        <pre class="diagram">中文问题
  → 生成问题向量
  → pgvector 相似度检索
  → 距离门槛过滤（RAG_MAX_DISTANCE=0.45）
  → DeepSeek 结构化生成
- → 引用合同校验
+ → 引用合同校验（[n] 行内引用与声明完全一致）
  → 回答或确定性拒答
  → 保存日志与证据快照</pre>
-        <p>
-          每次提问独立，不携带会话历史；删除或编辑文档不会破坏历史日志中的证据快照。
-        </p>
-      </section>
+      </div>
+      <ul class="muted-list">
+        <li>Web 只与本机 API 通信；Ollama 仅在本机提供 bge-m3 向量嵌入。</li>
+        <li>DeepSeek 仅由 API 调用，会接收到当前问题和检索到的证据片段。</li>
+        <li>每次提问独立，不携带会话历史；删除或编辑文档不会破坏历史快照。</li>
+      </ul>
+    </section>
 
-      <section>
+    <section id="screenshots">
+      <div class="section-head">
+        <span class="eyebrow">Screenshots</span>
         <h2>页面截图</h2>
         <p>以下截图来自通过真实人工验收的本地应用，只展示合成数据。</p>
+      </div>
+      <div class="grid grid-2">
         <figure>
-          <img src="./assets/question.png" alt="问答页：中文回答、行内引用与证据卡片" width="1440" height="900" />
+          <img src="./assets/question.png" alt="问答页：中文回答、行内引用与证据卡片" width="1440" height="900" loading="lazy" />
           <figcaption>问答页：中文回答、行内引用与证据卡片</figcaption>
         </figure>
         <figure>
-          <img src="./assets/documents.png" alt="文档页：中文文档列表与编辑详情" width="1440" height="900" />
+          <img src="./assets/documents.png" alt="文档页：中文文档列表与编辑详情" width="1440" height="900" loading="lazy" />
           <figcaption>文档页：中文文档列表与编辑详情</figcaption>
         </figure>
         <figure>
-          <img src="./assets/logs.png" alt="日志页：问答日志详情与证据快照" width="1440" height="900" />
+          <img src="./assets/logs.png" alt="日志页：问答日志详情与证据快照" width="1440" height="900" loading="lazy" />
           <figcaption>日志页：问答日志详情与证据快照</figcaption>
         </figure>
         <figure>
-          <img src="./assets/review-queue.png" alt="待处理页：拒答与没帮助项目、已解决与待处理状态" width="1440" height="900" />
-          <figcaption>待处理页：拒答与“没帮助”项目，含已解决与待处理状态</figcaption>
+          <img src="./assets/review-queue.png" alt="待处理页：拒答与没帮助项目、已解决与待处理状态" width="1440" height="900" loading="lazy" />
+          <figcaption>待处理页：拒答与「没帮助」项目，含已解决与待处理状态</figcaption>
         </figure>
-      </section>
+      </div>
+    </section>
 
-      <section>
+    <section id="quality">
+      <div class="section-head">
+        <span class="eyebrow">Quality</span>
         <h2>测试与评测摘要</h2>
-        <ul>
-          <li>单元测试 24 文件 / 205 用例；集成测试 7 文件 / 94 用例；Playwright 浏览器 E2E 3 条流程（完整链路、docx 上传、pdf 上传）通过。</li>
-          <li>固定评测集：6 个可回答问题、2 个生成阶段拒答、4 个检索阶段拒答。</li>
-          <li>真实 Ollama 检索评测：<strong>12/12</strong>；最终门槛 <code>RAG_MAX_DISTANCE=0.45</code>。</li>
-          <li>真实 DeepSeek 生成评测：<strong>12/12</strong>（仅由显式命令 <code>npm run eval:generation</code> 调用，可能产生费用）。</li>
-          <li><code>npm run verify</code> 全流程通过，且不调用真实 DeepSeek。</li>
-        </ul>
-      </section>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="num">205</div><div class="label">单元测试用例</div></div>
+        <div class="stat"><div class="num">94</div><div class="label">集成测试用例</div></div>
+        <div class="stat"><div class="num">3</div><div class="label">浏览器 E2E 流程</div></div>
+        <div class="stat"><div class="num accent">12/12</div><div class="label">检索 + 生成评测</div></div>
+      </div>
+      <ul class="muted-list" style="margin-top: 12px">
+        <li>固定评测集：6 个可回答问题、2 个生成阶段拒答、4 个检索阶段拒答。</li>
+        <li>真实 Ollama 检索评测 <strong style="color: var(--green)">12/12</strong>；最终门槛 <code>RAG_MAX_DISTANCE=0.45</code>。</li>
+        <li>真实 DeepSeek 生成评测 <strong style="color: var(--green)">12/12</strong>（仅由显式命令 <code>npm run eval:generation</code> 调用，可能产生费用）。</li>
+        <li><code>npm run verify</code> 全流程通过，且不调用真实 DeepSeek。</li>
+      </ul>
+    </section>
 
-      <section>
+    <section id="run">
+      <div class="section-head">
+        <span class="eyebrow">Local Setup</span>
         <h2>本地运行</h2>
-        <p>请按 README 的“从空环境启动”章节执行；简要步骤：</p>
-        <ol>
-          <li>复制环境文件并填写 <code>DEEPSEEK_API_KEY</code>（<code>Copy-Item .env.example .env</code>）。</li>
-          <li><code>npm ci</code>、<code>docker compose up -d postgres postgres-test</code>、<code>ollama pull bge-m3</code>、<code>npm run migrate</code>。</li>
-          <li>两个终端分别运行 <code>npm run dev:api</code> 与 <code>npm run dev:web</code>。</li>
-          <li>浏览器访问 <code>http://127.0.0.1:5173</code>。</li>
-        </ol>
-        <p>本地端口：Web <code>127.0.0.1:5173</code>、API <code>127.0.0.1:4000</code>、开发 PostgreSQL <code>5434</code>、测试 PostgreSQL <code>5433</code>、Ollama <code>11434</code>、MinerU（可选）<code>8000</code>。</p>
-        <p>
-          完整文档见
-          <a href="https://github.com/Bingwithyou/anchordesk#readme">GitHub README</a>。
-        </p>
-      </section>
-    </main>
+        <p>请按 README 的「从空环境启动」章节执行；简要步骤：</p>
+      </div>
+      <ol class="steps">
+        <li>复制环境文件并填写 <code>DEEPSEEK_API_KEY</code>（<code>Copy-Item .env.example .env</code>）。</li>
+        <li><code>npm ci</code>、<code>docker compose up -d postgres postgres-test</code>、<code>ollama pull bge-m3</code>、<code>npm run migrate</code>。</li>
+        <li>两个终端分别运行 <code>npm run dev:api</code> 与 <code>npm run dev:web</code>。</li>
+        <li>浏览器访问 <code>http://127.0.0.1:5173</code>。</li>
+      </ol>
+      <p style="margin-top: 12px">
+        本地端口：Web <code>127.0.0.1:5173</code>、API <code>127.0.0.1:4000</code>、
+        开发 PostgreSQL <code>5434</code>、测试 PostgreSQL <code>5433</code>、
+        Ollama <code>11434</code>、MinerU（可选）<code>8000</code>。
+        完整文档见
+        <a href="https://github.com/Bingwithyou/anchordesk#readme">GitHub README</a>。
+      </p>
+    </section>
+  </main>
 
-    <footer>
-      <p>AnchorDesk — 本地 RAG 演示项目。本项目介绍页为纯静态页面，不包含任何在线 API 调用。</p>
-    </footer>
-  </div>
+  <footer>
+    <p>
+      AnchorDesk — 本地 RAG 演示项目 · 本项目介绍页为纯静态页面，不包含任何在线 API 调用 ·
+      <a href="https://github.com/Bingwithyou/anchordesk">GitHub</a>
+    </p>
+  </footer>
 </body>
 </html>

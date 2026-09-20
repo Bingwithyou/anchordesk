@@ -6,132 +6,192 @@
     <title>AnchorDesk 检索演示（浏览器端推理）</title>
     <link rel="stylesheet" href="../styles.css" />
     <style>
+      .demo-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 32px 0 8px;
+      }
+      .demo-head h1 {
+        margin: 0;
+        font-size: 22px;
+        letter-spacing: -0.015em;
+        color: var(--text);
+      }
+      .demo-head .subtitle {
+        margin: 4px 0 0;
+        color: var(--text-2);
+        font-size: 14px;
+      }
       .demo-note {
-        border-left: 4px solid #d97706;
-        background: #fffbeb;
-        padding: 0.75rem 1rem;
-        font-size: 0.85rem;
-        line-height: 1.6;
+        margin-top: 20px;
+        padding: 12px 16px;
+        border: 1px solid var(--amber-border);
+        border-radius: var(--radius);
+        background: var(--amber-soft);
+        color: #d9c08a;
+        font-size: 13px;
+        line-height: 1.65;
+      }
+      .demo-panel {
+        margin-top: 16px;
+        padding: 20px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--surface);
       }
       .demo-query {
         display: flex;
-        gap: 0.5rem;
-        margin-top: 1rem;
+        gap: 10px;
       }
       .demo-query input {
         flex: 1;
-        padding: 0.5rem 0.75rem;
-        border: 1px solid #d6d3d1;
-        border-radius: 6px;
-        font-size: 0.95rem;
+        padding: 10px 14px;
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-sm);
+        background: #0e0f13;
+        color: var(--text);
+        font-size: 14px;
+        font-family: inherit;
+        transition: border-color 0.15s ease;
+      }
+      .demo-query input::placeholder {
+        color: var(--text-3);
+      }
+      .demo-query input:focus {
+        outline: none;
+        border-color: var(--accent);
       }
       .demo-query button {
-        padding: 0.5rem 1.25rem;
+        padding: 0 20px;
         border: 0;
-        border-radius: 6px;
-        background: #1d4ed8;
+        border-radius: var(--radius-sm);
+        background: var(--accent);
         color: #fff;
-        font-size: 0.95rem;
+        font-size: 14px;
+        font-weight: 500;
         cursor: pointer;
+        transition: background 0.15s ease;
+      }
+      .demo-query button:hover:not(:disabled) {
+        background: var(--accent-hover);
+      }
+      .demo-query button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
       }
       .demo-chips {
-        margin-top: 0.75rem;
+        margin-top: 14px;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: 8px;
       }
       .demo-chip {
-        border: 1px solid #d6d3d1;
-        background: #fff;
+        border: 1px solid var(--border);
+        background: var(--card);
         border-radius: 999px;
-        padding: 0.3rem 0.8rem;
-        font-size: 0.8rem;
+        padding: 4px 12px;
+        font-size: 12.5px;
+        color: var(--text-2);
         cursor: pointer;
+        transition: border-color 0.15s ease, color 0.15s ease;
       }
       .demo-chip:hover {
-        border-color: #1d4ed8;
-        color: #1d4ed8;
+        border-color: var(--accent);
+        color: var(--accent-hover);
       }
       .demo-status {
-        margin-top: 1rem;
-        color: #78716c;
-        font-size: 0.9rem;
+        margin: 14px 0 0;
+        color: var(--text-3);
+        font-size: 13px;
       }
       .demo-refusal {
-        margin-top: 1rem;
-        border: 1px solid #fecaca;
-        background: #fef2f2;
-        border-radius: 6px;
-        padding: 1rem;
-        color: #b91c1c;
+        margin-top: 16px;
+        padding: 16px 18px;
+        border: 1px solid var(--red-border);
+        border-radius: var(--radius-lg);
+        background: var(--red-soft);
+      }
+      .demo-refusal strong {
+        color: var(--red);
+        font-size: 15px;
       }
       .demo-refusal .reason {
-        font-size: 0.8rem;
-        color: #7f1d1d;
-        margin-top: 0.5rem;
+        margin: 8px 0 0;
+        font-size: 13px;
+        color: #c98a8d;
       }
       .demo-evidence {
-        margin-top: 1rem;
-        border: 1px solid #d6d3d1;
-        border-radius: 6px;
-        padding: 0.75rem 1rem;
-        background: #fff;
+        margin-top: 12px;
+        padding: 16px 18px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--card);
+        transition: border-color 0.15s ease;
       }
-      .demo-evidence + .demo-evidence {
-        margin-top: 0.5rem;
+      .demo-evidence:hover {
+        border-color: var(--border-strong);
       }
       .demo-evidence header {
         display: flex;
         justify-content: space-between;
-        gap: 1rem;
-        font-size: 0.85rem;
+        align-items: baseline;
+        gap: 12px;
+        font-size: 13px;
       }
       .demo-evidence .title {
         font-weight: 600;
+        color: var(--text);
       }
       .demo-evidence .distance {
-        color: #78716c;
+        color: var(--text-3);
+        font-family: var(--mono);
+        font-size: 12px;
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
       }
       .demo-evidence .passed {
-        color: #15803d;
+        color: var(--green);
       }
       .demo-evidence .blocked {
-        color: #b91c1c;
+        color: var(--red);
       }
       .demo-evidence p {
-        margin: 0.5rem 0 0;
-        font-size: 0.9rem;
-        line-height: 1.6;
-        color: #44403c;
+        margin: 8px 0 0;
+        font-size: 13.5px;
+        line-height: 1.7;
+        color: var(--text-2);
       }
       .demo-back {
-        margin-top: 2rem;
-        font-size: 0.9rem;
+        margin: 24px 0 8px;
+        font-size: 13px;
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <header>
-        <h1>AnchorDesk 检索演示</h1>
-        <p class="subtitle">
-          在浏览器里跑真实的向量检索：输入任意问题，现场计算嵌入、余弦距离与门槛判定。
-        </p>
+      <header class="demo-head">
+        <div>
+          <h1>浏览器端检索演示</h1>
+          <p class="subtitle">
+            在浏览器里跑真实的向量检索：输入任意问题，现场计算嵌入、余弦距离与门槛判定。
+          </p>
+        </div>
+        <a class="btn btn-ghost" href="../">← 返回介绍页</a>
       </header>
 
-      <section>
-        <div class="demo-note">
-          <strong>演示边界（请如实看待）：</strong>本页在浏览器本地运行轻量模型
-          <code>bge-small-zh-v1.5</code>（512 维，约 25 MB，WebAssembly 推理），
-          真实系统使用 Ollama <code>bge-m3</code>（1024 维）；本页距离与门槛
-          （<code id="demo-threshold">—</code>）由演示模型在校准集上标定，与真实系统
-          的 <code>RAG_MAX_DISTANCE=0.45</code> 不可直接比较。检索、距离、拒答判定
-          均为真实计算；<strong>回答生成不在此演示内</strong>（DeepSeek Key 不能进入
-          静态页面），需按 README 在本机运行完整系统。语料为 fixtures 中的合成文档。
-        </div>
+      <div class="demo-note">
+        <strong>演示边界（请如实看待）：</strong>本页在浏览器本地运行轻量模型
+        <code>bge-small-zh-v1.5</code>（512 维，约 25 MB，WebAssembly 推理），
+        真实系统使用 Ollama <code>bge-m3</code>（1024 维）；本页距离与门槛
+        （<code id="demo-threshold">—</code>）由演示模型在校准集上标定，与真实系统
+        的 <code>RAG_MAX_DISTANCE=0.45</code> 不可直接比较。检索、距离、拒答判定
+        均为真实计算；<strong>回答生成不在此演示内</strong>（DeepSeek Key 不能进入
+        静态页面），需按 README 在本机运行完整系统。语料为 fixtures 中的合成文档。
+      </div>
 
+      <div class="demo-panel">
         <div class="demo-query">
           <input
             id="demo-input"
@@ -144,8 +204,12 @@
         <div class="demo-chips" id="demo-chips"></div>
         <p class="demo-status" id="demo-status">正在加载演示模型（约 25 MB，仅首次需要几秒）…</p>
         <div id="demo-results"></div>
-        <p class="demo-back"><a href="../">← 返回 AnchorDesk 项目介绍</a></p>
-      </section>
+      </div>
+
+      <p class="demo-back">
+        <a href="https://github.com/Bingwithyou/anchordesk">GitHub 仓库</a> ·
+        <a href="../">项目介绍页</a>
+      </p>
     </div>
 
     <script type="module" src="./demo.js"></script>
