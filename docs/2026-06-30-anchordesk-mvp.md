@@ -100,16 +100,23 @@ POST /api/questions
 
 支持两种输入方式：
 
-- 在文本框中粘贴内容。
-- 在浏览器中选择 .md 或 .txt 文件。
+- 在文本框中粘贴内容（JSON 接口 `POST /api/documents`）。
+- 在浏览器中选择文件上传（multipart 接口 `POST /api/documents/upload`）：
+  `.md` / `.txt` 客户端读入后走粘贴路径；`.docx` 由服务端 mammoth 提取；
+  `.pdf` 由可选部署的 MinerU 解析（含扫描件 OCR），未启用时返回 400 明确报错。
 
 限制：
 
 - 标题去除首尾空白后长度为 1 至 120 个字符。
-- 正文去除首尾空白后不得为空。
+- 正文（粘贴或提取结果）去除首尾空白后不得为空。
 - 正文 UTF-8 字节数不得超过 100 KB。
-- sourceType 只能为 markdown 或 text。
-- .md 映射为 markdown，.txt 映射为 text。
+- 上传原始文件不得超过 10 MB（提取后的文本仍受 100 KB 约束）。
+- sourceType 只能为 markdown、text、pdf 或 docx。
+- .md 映射为 markdown，.txt 映射为 text，.pdf 映射为 pdf，.docx 映射为 docx。
+
+解析结果必须通过质量门控（空文本、乱码率、字符密度），否则按输入不合法拒绝（400），
+不进入 Review Queue。解析器属于外部调用：MinerU 连接失败/超时按系统错误处理
+（502/504），与「知识拒答」严格区分。
 
 创建与编辑必须同时完成文档保存和向量索引。
 
@@ -316,9 +323,10 @@ Fastify API
 
 ~~~text
 输入文档
+  -> 文件上传：解析（本地 mammoth / 可选 MinerU）与质量门控
   -> 校验标题、类型与 100 KB 上限
   -> 段落感知切块
-  -> 批量为全部 chunks 调用 Ollama
+  -> 批量为全部 chunks 调用 Ollama（解析与嵌入都在事务外）
   -> 校验每个向量为 1024 维
   -> 在一个事务中写入文档与 chunks
 ~~~
@@ -605,7 +613,7 @@ documents (
 )
 ~~~
 
-source_type 通过 CHECK 限制为 markdown 或 text。
+source_type 通过 CHECK 限制为 markdown、text、pdf 或 docx（001 建表，002 迁移扩展）。
 
 ### 5.3 document_chunks
 
@@ -1130,12 +1138,12 @@ App.tsx 只负责布局、导航和页面切换。
 
 - 文档列表。
 - 新建和编辑表单。
-- .md 与 .txt 文件选择器。
+- .md / .txt / .pdf / .docx 文件选择器。
 - 标题、类型、更新时间和 chunk 数。
 - 保存期间状态。
 - 删除按钮和确认对话框。
 
-前端提前检查 100 KB 上限，但后端仍必须重复校验。
+前端提前检查 100 KB / 10 MB 上限，但后端仍必须重复校验。
 
 ### 9.4 运行日志页面
 

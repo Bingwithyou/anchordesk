@@ -63,7 +63,7 @@ npm run eval:generation        # 真实 Ollama + DeepSeek 生成评测（付费�
 
 - **外部错误 ≠ 知识拒答**：Ollama/DeepSeek 连接失败返回 502、超时返回 504，是明确的系统错误，不进入 Review Queue；知识拒答是固定文案 `知识库中没有足够依据回答这个问题。` 并带结构化 `RefusalReason`。两者不可混淆。
 - **拒答两级**：检索级（`no_chunks`、`low_similarity`）与生成级（`model_refused`、`empty_answer`、`invalid_model_output`、`invalid_citation`）。
-- **文档输入限制**：标题 1–120 字符；正文非空且 UTF-8 不超过 100 KB；`sourceType` 只能 `markdown`/`text`（.md/.txt 映射）。创建/更新必须同时完成文档写入与全部向量索引，任何一步失败不留半成品；更新带 `expectedUpdatedAt` 乐观并发校验，冲突返回 409。
+- **文档输入限制**：标题 1–120 字符；正文非空且 UTF-8 不超过 100 KB；`sourceType` 为 `markdown`/`text`/`pdf`/`docx`（.md/.txt/.pdf/.docx 映射）。上传原始文件 ≤ 10 MB，提取结果必须通过质量门控（空文本/乱码率/字符密度），失败按输入不合法 400 拒绝、不进 Review Queue；pdf 依赖可选 MinerU（未配置时 400 明确拒绝，连接失败/超时按系统错误 502/504）。创建/更新必须同时完成文档写入与全部向量索引，任何一步失败不留半成品；更新带 `expectedUpdatedAt` 乐观并发校验，冲突返回 409。
 - **问题输入**：去空白后 1–2000 字符；单轮无会话历史。
 - **不可变审计日志**：`question_logs` 与 `question_log_hits` 创建后禁止 UPDATE/DELETE（迁移里有触发器强制，ERRCODE 55000）；`source_document_id`/`source_chunk_id` 不建外键，是刻意保留的历史快照。测试清理靠重建 schema，不删审计行。
 - **事务边界**：文档写入、日志+快照写入、feedback+队列项写入必须在事务中；事务内禁止任何 Ollama/DeepSeek 网络调用（先完成网络调用，事务只负责最终写入）。

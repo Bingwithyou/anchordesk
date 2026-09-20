@@ -1,7 +1,8 @@
 # PDF/Word 文档解析层设计
 
-> 状态：草案，待评审。本文是 `docs/2026-06-30-anchordesk-mvp.md`（产品合同）的扩展设计，
-> 落地后需同步更新产品合同的「文档输入限制」章节、README 与 CLAUDE.md。
+> 状态：已实施。阶段 A（本地提取 + upload 路由，提交 02f78e4）与阶段 B（MinerU Provider +
+> 路由 + 可选配置，提交 9da2af9）已落地；产品合同的「文档输入限制」、README 与 CLAUDE.md
+> 已同步更新。阶段 C 的评测量化（before/after 检索命中率）待真实 MinerU 环境。
 
 日期：2026-09-18
 

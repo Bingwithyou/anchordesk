@@ -42,7 +42,7 @@
       <section>
         <h2>MVP 功能</h2>
         <ul>
-          <li>中文文档管理：创建、列表、详情、连续编辑（乐观并发校验）与删除，自动分块与向量索引。</li>
+          <li>中文文档管理：创建、列表、详情、连续编辑（乐观并发校验）与删除，自动分块与向量索引；支持 .md / .txt / .docx 文件上传与解析质量门控（.pdf 需可选部署 MinerU，含扫描件 OCR）。</li>
           <li>单轮问答：中文问题 → 检索 → 生成；答案含行内引用，可点击定位证据卡片。</li>
           <li>确定性拒答：知识库为空、距离超门槛、模型主动拒答、模型输出不合法，均返回固定拒答文案。</li>
           <li>用户反馈：“有帮助 / 没有帮助”提交后锁定；“没有帮助”自动进入待处理队列。</li>
@@ -121,7 +121,7 @@ PostgreSQL + pgvector</pre>
       <section>
         <h2>测试与评测摘要</h2>
         <ul>
-          <li>单元测试 20 文件 / 173 用例；集成测试 7 文件 / 80 用例；Playwright 浏览器 E2E 完整流程通过。</li>
+          <li>单元测试 24 文件 / 205 用例；集成测试 7 文件 / 94 用例；Playwright 浏览器 E2E 3 条流程（完整链路、docx 上传、pdf 上传）通过。</li>
           <li>固定评测集：6 个可回答问题、2 个生成阶段拒答、4 个检索阶段拒答。</li>
           <li>真实 Ollama 检索评测：<strong>12/12</strong>；最终门槛 <code>RAG_MAX_DISTANCE=0.45</code>。</li>
           <li>真实 DeepSeek 生成评测：<strong>12/12</strong>（仅由显式命令 <code>npm run eval:generation</code> 调用，可能产生费用）。</li>
@@ -138,7 +138,7 @@ PostgreSQL + pgvector</pre>
           <li>两个终端分别运行 <code>npm run dev:api</code> 与 <code>npm run dev:web</code>。</li>
           <li>浏览器访问 <code>http://127.0.0.1:5173</code>。</li>
         </ol>
-        <p>本地端口：Web <code>127.0.0.1:5173</code>、API <code>127.0.0.1:4000</code>、开发 PostgreSQL <code>5434</code>、测试 PostgreSQL <code>5433</code>、Ollama <code>11434</code>。</p>
+        <p>本地端口：Web <code>127.0.0.1:5173</code>、API <code>127.0.0.1:4000</code>、开发 PostgreSQL <code>5434</code>、测试 PostgreSQL <code>5433</code>、Ollama <code>11434</code>、MinerU（可选）<code>8000</code>。</p>
         <p>
           完整文档见
           <a href="https://github.com/Bingwithyou/anchordesk#readme">GitHub README</a>。

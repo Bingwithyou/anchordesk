@@ -12,7 +12,7 @@ AnchorDesk 演示了一条完整的本地化 RAG 链路：文档分块与向量�
 
 ## 二、MVP 功能
 
-- **中文文档管理**：创建、列表、详情、连续编辑（乐观并发版本校验）与删除；自动分块与向量索引。
+- **中文文档管理**：创建、列表、详情、连续编辑（乐观并发版本校验）与删除；自动分块与向量索引；支持 `.md` / `.txt` / `.docx` 文件上传与解析质量门控（`.pdf` 需可选部署 MinerU，含扫描件 OCR）。
 - **单轮问答**：中文问题 → 检索 → 生成；答案含行内引用，点击引用可定位到证据卡片（文档标题、内容预览、余弦距离）。
 - **确定性拒答**：知识库为空、检索距离超门槛、模型主动拒答、模型输出不合法，均返回固定拒答文案并记录原因。
 - **用户反馈**：对普通回答提交"有帮助 / 没有帮助"；反馈提交后按钮锁定；"没有帮助"自动进入待处理队列。
@@ -29,6 +29,7 @@ AnchorDesk 演示了一条完整的本地化 RAG 链路：文档分块与向量�
 | 数据库 | PostgreSQL 16 + pgvector（1024 维余弦距离，HNSW 索引） |
 | 向量模型 | Ollama `bge-m3` |
 | 生成模型 | DeepSeek（chat/completions，结构化 JSON 输出） |
+| 文档解析 | 本地 mammoth（docx）+ 可选 MinerU（PDF / 扫描件 OCR，本机 `mineru-api`） |
 | 测试 | Vitest（单元 + 集成）、Playwright（浏览器 E2E）、oxlint、TypeScript |
 
 ## 四、系统架构
@@ -41,13 +42,16 @@ Fastify API ─── Ollama bge-m3
    │
    ├────────── DeepSeek
    │
+   ├────────── MinerU（可选：PDF 解析，mineru-api）
+   │
    ▼
 PostgreSQL + pgvector
 ```
 
 - **Web**（`127.0.0.1:5173`）：中文管理界面，只与本机 API 通信。
-- **API**（`127.0.0.1:4000`）：文档服务、问答编排、反馈与审核、日志查询；验证输入、数据库安全与上游错误映射（502/504）。
+- **API**（`127.0.0.1:4000`）：文档服务（含文件解析与质量门控）、问答编排、反馈与审核、日志查询；验证输入、数据库安全与上游错误映射（502/504）。
 - **Ollama**（`127.0.0.1:11434`）：仅在本机提供 `bge-m3` 向量嵌入。
+- **MinerU**（可选，`127.0.0.1:8000`）：本机 `mineru-api` 服务，负责 PDF 解析（数字版 + 扫描件 OCR），输出 Markdown。
 - **DeepSeek**：仅由 API 调用。它会接收到**当前问题和检索到的证据片段**，用于生成回答或拒答。
 
 ## 五、RAG 问答流程
@@ -74,7 +78,7 @@ PostgreSQL + pgvector
 ## 六、本地安全边界
 
 - 项目**仅供开发者本人在本机运行**。
-- Web、API、PostgreSQL（开发库 `5434`、测试库 `5433`）、Ollama 均只监听回环地址（`127.0.0.1` / `localhost`）。
+- Web、API、PostgreSQL（开发库 `5434`、测试库 `5433`）、Ollama、MinerU（可选）均只监听回环地址（`127.0.0.1` / `localhost`）。
 - **不支持局域网或公网访问**；不要求部署任何公网服务。
 - **只允许使用合成数据或公开数据**。DeepSeek 会接收当前问题和检索片段，请勿录入客户隐私、公司机密或个人敏感信息。
 - `DEEPSEEK_API_KEY` 只存在于本机 `.env`，`.env` 已被 Git 忽略，**不要提交 `.env`**。
@@ -89,6 +93,7 @@ PostgreSQL + pgvector
 | Ollama | 本机服务，需保持运行 |
 | Ollama 模型 | `bge-m3`（`ollama pull bge-m3`） |
 | DeepSeek API Key | 必填，写入 `.env` 的 `DEEPSEEK_API_KEY` |
+| MinerU（可选） | 仅 PDF 上传需要：本机 `mineru-api` + `.env` 的 `MINERU_API_URL` |
 | Playwright Chromium | 仅 E2E 需要（`npx playwright install chromium`） |
 
 ### 环境文件
@@ -116,6 +121,7 @@ cp .env.example .env
 | 开发 PostgreSQL | `127.0.0.1:5434` |
 | 测试 PostgreSQL | `127.0.0.1:5433` |
 | Ollama | `127.0.0.1:11434` |
+| MinerU mineru-api（可选） | `127.0.0.1:8000` |
 
 ## 八、从空环境启动
 
@@ -135,6 +141,20 @@ npx playwright install chromium
 - `docker compose ps` 中两个数据库应显示 **healthy**。
 - **Ollama 服务必须正在运行**（`ollama list` 能看到 `bge-m3`）。
 - `DEEPSEEK_API_KEY` 为空时，API 会**拒绝启动**（快速失败，不泄露配置值）。
+
+如需 PDF 上传（可选，含扫描件 OCR；不部署则 PDF 上传会得到明确的 400 提示）：
+
+```powershell
+uv venv D:\envs\mineru --python 3.11
+uv pip install --python D:\envs\mineru\Scripts\python.exe torch torchvision --index-url https://download.pytorch.org/whl/cpu
+uv pip install --python D:\envs\mineru\Scripts\python.exe -U "mineru[core]" -i https://mirrors.aliyun.com/pypi/simple
+D:\envs\mineru\Scripts\mineru-models-download.exe -s modelscope -m pipeline
+D:\envs\mineru\Scripts\mineru-api.exe --host 127.0.0.1 --port 8000 --backend pipeline --device cpu
+```
+
+- 模型下载约 5–10 GB，仅首次需要；`.env` 中 `MINERU_API_URL` 留空则禁用 PDF 上传。
+- 验证：`curl.exe --noproxy "*" http://127.0.0.1:8000/health`。
+- 硬件建议 16 GB+ 内存；CPU 解析较慢，单页数秒到数十秒。
 
 然后分别打开两个终端：
 
@@ -172,8 +192,8 @@ npm run build
 
 说明：
 
-- **`npm run verify` 不调用真实 DeepSeek**。E2E 使用 Fake Embedding/Answer Provider 和独立端口 `4100`，绝不触碰开发数据库与真实上游。
-- 单元测试 20 文件 / 173 用例；集成测试 7 文件 / 80 用例；E2E 为 1 条完整 13 步浏览器流程。
+- **`npm run verify` 不调用真实 DeepSeek**。E2E 使用 Fake Embedding/Answer/Extraction Provider 和独立端口 `4100`，绝不触碰开发数据库与真实上游；MinerU 相关用例由 mock HTTP 服务覆盖。
+- 单元测试 24 文件 / 205 用例；集成测试 7 文件 / 94 用例；E2E 3 条流程（完整 13 步链路、docx 上传、pdf 上传）。
 
 ## 十、RAG 评测
 
@@ -206,6 +226,12 @@ A：Ollama 服务未运行、`bge-m3` 未拉取或正在冷启动加载。运行
 
 **Q：文档保存时提示"文档已被修改，请重新加载最新内容后再保存"？**
 A：其他操作更新了该文档，属于乐观并发保护。点击当前文档重新加载最新内容后重新编辑。
+
+**Q：PDF 上传提示"PDF 解析尚未启用"？**
+A：本机未部署 MinerU，或 `.env` 的 `MINERU_API_URL` 为空。按第八节的「如需 PDF 上传」部署并启动 `mineru-api` 后即可。这是明确的输入错误，不会伪装成知识拒答。
+
+**Q：上传 .docx / .pdf 后提示"文件内容无法解析"？**
+A：文件损坏、内容为空或扫描件 OCR 失败（质量门控拒绝）。检查文件后重试；pdf 可确认 `mineru-api` 正在运行且内存充足。
 
 **Q：为什么拒答没有反馈按钮？**
 A：拒答不展示反馈按钮；拒答会自动进入"待处理"页。
@@ -249,7 +275,7 @@ AnchorDesk/
 ## 十四、MVP 非目标
 
 - 不支持登录、用户、角色或多租户。
-- 不支持多轮对话、会话历史、PDF/网页导入或流式回答。
-- 不部署 Fastify、PostgreSQL、Ollama 或 DeepSeek 到公网。
+- 不支持多轮对话、会话历史、网页导入或流式回答。（PDF 导入已支持，需可选部署 MinerU）
+- 不部署 Fastify、PostgreSQL、Ollama、MinerU 或 DeepSeek 到公网。
 - 不在 Pages 中模拟或伪造可交互的 RAG。
 - 不录入或展示客户隐私、公司机密、个人敏感信息或真实密钥。
