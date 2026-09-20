@@ -106,6 +106,35 @@
         color: var(--text-3);
         font-size: 13px;
       }
+      .demo-progress {
+        margin-top: 8px;
+        height: 3px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+      }
+      .demo-progress-fill {
+        height: 100%;
+        width: 0;
+        border-radius: 999px;
+        background: var(--accent);
+        transition: width 0.2s ease;
+      }
+      .demo-progress-fill.indeterminate {
+        width: 32%;
+        animation: demo-slide 1.1s ease-in-out infinite;
+      }
+      @keyframes demo-slide {
+        0% {
+          margin-left: -32%;
+        }
+        100% {
+          margin-left: 100%;
+        }
+      }
+      .demo-progress[hidden] {
+        display: none;
+      }
       .demo-refusal {
         margin-top: 16px;
         padding: 16px 18px;
@@ -202,7 +231,10 @@
           <button id="demo-submit" type="button" disabled>检索</button>
         </div>
         <div class="demo-chips" id="demo-chips"></div>
-        <p class="demo-status" id="demo-status">正在加载演示模型（约 25 MB，仅首次需要几秒）…</p>
+        <p class="demo-status" id="demo-status">正在初始化推理引擎（WebAssembly）…</p>
+        <div class="demo-progress" id="demo-progress">
+          <div class="demo-progress-fill indeterminate" id="demo-progress-fill"></div>
+        </div>
         <div id="demo-results"></div>
       </div>
 

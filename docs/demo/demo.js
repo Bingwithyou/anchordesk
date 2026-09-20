@@ -16,10 +16,60 @@ const statusLine = document.querySelector('#demo-status');
 const resultsBox = document.querySelector('#demo-results');
 const chipsBox = document.querySelector('#demo-chips');
 const thresholdLabel = document.querySelector('#demo-threshold');
+const progressBar = document.querySelector('#demo-progress');
+const progressFill = document.querySelector('#demo-progress-fill');
 
 let data = null;
 let extractorPromise = null;
 let busy = false;
+
+// 模型文件下载进度：按文件累计字节数估算总体百分比；
+// 推理引擎（wasm）加载阶段无回调，进度条保持不确定态动画。
+const loadingProgress = new Map();
+
+function setProgress(percent) {
+  if (percent === null) {
+    progressFill.className = 'demo-progress-fill indeterminate';
+    return;
+  }
+  progressFill.className = 'demo-progress-fill';
+  progressFill.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+}
+
+function hideProgress() {
+  progressBar.hidden = true;
+}
+
+function handleLoadProgress(event) {
+  const status = event.status;
+  if (
+    (status === 'initiate' || status === 'download' || status === 'progress') &&
+    typeof event.file === 'string'
+  ) {
+    if (
+      typeof event.loaded === 'number' &&
+      typeof event.total === 'number' &&
+      event.total > 0
+    ) {
+      loadingProgress.set(event.file, {
+        loaded: event.loaded,
+        total: event.total,
+      });
+    }
+    let loaded = 0;
+    let total = 0;
+    for (const entry of loadingProgress.values()) {
+      loaded += entry.loaded;
+      total += entry.total;
+    }
+    if (total > 0) {
+      const percent = Math.round((loaded / total) * 100);
+      const fileLabel = event.file.split('/').pop();
+      statusLine.textContent = `正在下载模型文件（${fileLabel}）：${percent}%`;
+      setProgress(percent);
+    }
+  }
+}
 
 function cosineDistance(a, b) {
   let dot = 0;
@@ -34,6 +84,7 @@ async function loadExtractor() {
   if (extractorPromise === null) {
     extractorPromise = pipeline('feature-extraction', MODEL_ID, {
       dtype: 'q8',
+      progress_callback: handleLoadProgress,
     });
   }
   return extractorPromise;
@@ -155,12 +206,14 @@ async function main() {
     }
   });
   await loadExtractor();
+  hideProgress();
   submit.disabled = false;
   statusLine.textContent =
-    '模型已就绪。输入任意问题开始检索，或点击下方预置问题。';
+    '模型已就绪（约 25 MB 已在本地加载）。输入任意问题开始检索，或点击下方预置问题。';
 }
 
 main().catch((error) => {
+  hideProgress();
   statusLine.textContent = `初始化失败：${
     error instanceof Error ? error.message : '未知错误'
   }`;
